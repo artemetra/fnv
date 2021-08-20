@@ -101,7 +101,7 @@ where N - number of points, F - file size in bytes
 First byte in header: `02`  
 Byte `-28`: tempo/global flags:  
 
-| bruh | Tempo | Global |
+| Byte | Tempo | Global |
 | :--: | :---: | :----: |
 | `00` | Off   | Off    |
 | `01` | On    | Off    |
