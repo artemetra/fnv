@@ -21,13 +21,13 @@ Apart from being just the examples, these are actually the only types of curves 
 
   ##### \* - automation clips can't actually be saved in fnv files directly, but their _states_ can be copied and pasted inside FL. More on   that later
 
-All of them have their disctinctive features and are saved in .fnv's differently. I analyze them using a hex editor, so expect a lot of byte values and adresses. First of all, let's look at what is the same for alltypes:
+All of them have their disctinctive features and are saved in .fnv's differently. I analyze them using a hex editor, so expect a lot of byte values and adresses. First of all, let's look at what is the same for all types:
 
 ## _The Similarities:_
 
 1. ### Contents of curves
 
-    Each curve is made of **points**, which are connected with each other by **connections(?)**. These connections can be modified by changing their **modes** and their **tensions.**
+    Each curve is made of **points**, which are connected with each other by **connections(?)**. These connections can be modified and customised by changing their **modes** and their **tensions.** Connections cannot overlap vertically, however instant jumps, where 2 or more points have same x coordinates are allowed.  
 
 2. ### Point modes
 
@@ -92,11 +92,15 @@ All of them have their disctinctive features and are saved in .fnv's differently
 
 First byte in header: `01`  
 
+Minimum number of points: 1
+
 Number of points formula:  
 `N = (F-72)/24+1`,
 where N - number of points, F - file size in bytes
 
 ## LFO Envelope
+
+Minimum number of points: 1
 
 First byte in header: `02`  
 Byte `-28`: tempo/global flags:  
@@ -117,6 +121,26 @@ where N - number of points, F - file size in bytes
 ## Graph  
 First byte in header: `03`
 
+Minimum number of points: 2
+
 Number of points formula:  
 `N = (F-80)/24+2`,
 where N - number of points, F - file size in bytes
+
+|Num |Byte  |Diff|
+|:-: |:-:   |:-: |
+| 1  | `B0` | -  |
+| 2  | `C0` | 16 |
+| 3  | `C8` |  8 |
+| 4  | `D0` |  8 |
+| 5  | `D4` |  4 |
+| 6  | `D8` |  4 |
+| 7  | `DC` |  4 |
+| 8  | `E0` |  4 |
+| 10 | `E2` |  2 |
+| 11 | `E4` |  2 |
+| 12 | `E8` |  2 |
+| 13 | `EA` |  2 |
+| 14 | `EC` |  2 |
+| 15 | `EE` |  2 |
+| 16 | `F0` |  1 |
