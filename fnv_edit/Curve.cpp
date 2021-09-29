@@ -43,3 +43,7 @@ Curve::Curve(CurveType curveType, std::vector<Point> points) {
 		m_points = points;
 	}
 }
+
+EnvelopeCurve::EnvelopeCurve(std::vector<Point> points) {
+	// do the construction
+}

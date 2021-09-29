@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 enum class Mode
 {
     /*
@@ -49,22 +49,67 @@ enum class Mode
     DOUBLE_CURVE_3 = 0x0c
 };
 
+
+
+typedef unsigned short ush;
 class Point {
-private:
+protected:
     unsigned int m_num;
-    unsigned short m_x;
-    unsigned short m_y;
+    ush m_x;
+    ush m_y;
 
     Mode m_mode;
+    double m_tension;
+
 public:
-    Point(unsigned short x, unsigned short y, Mode mode);
+    Point(ush x, ush y, Mode mode);
 
-    void setX(unsigned short x);
-    void setY(unsigned short y);
+    void setX(ush x);
+    void setY(ush y);
     void setMode(Mode mode);
+    void setNum(unsigned int num);
+    void setTension(double tension);
 
-    double getX() const;
-    double getY() const;
+    ush getX() const;
+    ush getY() const;
     Mode getMode() const;
     int getNum() const;
+    double getTension() const;
+
 };
+
+enum class ArpMode {
+    // TODO: reverse engineer the bytes corresponding to
+    // arpeggiator breaks
+    NONE,
+    PREVIOUS,
+    SAME,
+    NEXT
+};
+
+struct AdsrMode
+{
+    bool decay;
+    bool loopStart;
+    bool sustain;
+    bool* loopEnd = &sustain;
+    // in fl, it's written as "Sustain / Loop End" so i
+    // might use either of them
+};
+
+
+class EnvPoint : protected Point {
+private:
+    ArpMode m_arpMode;
+    AdsrMode m_adsrMode;
+public:
+    // TODO: add implementations for these
+    EnvPoint();
+
+    void setArpMode(ArpMode arpMode);
+    void setAdsrMode(AdsrMode adsrMode);
+
+    ArpMode getArpMode() const;
+    AdsrMode getAdsrMode() const;
+};
+

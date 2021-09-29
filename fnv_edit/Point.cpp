@@ -3,7 +3,7 @@
 #include<stdexcept>
 #include<string>
 
-Point::Point(unsigned short x, unsigned short y, Mode mode) {
+Point::Point(ush x, ush y, Mode mode) {
 	
 	setX(x);
 	setY(y);
@@ -11,14 +11,14 @@ Point::Point(unsigned short x, unsigned short y, Mode mode) {
 }
 
 
-void Point::setX(unsigned short x) {
+void Point::setX(ush x) {
 	//TODO: figure out the limits on the x value
 	m_x = x;
 }
 
-void Point::setY(unsigned short y) {
+void Point::setY(ush y) {
 
-	if (y > 1 || y < 0) {
+	if (y > 1) {
 		std::cout << "Y coordinate must be in range [0,1] (inclusively). Input: " << y << std::endl;
 	} else { 
 		m_y = y; 
@@ -29,11 +29,19 @@ void Point::setMode(Mode mode) {
 	m_mode = mode;
 }
 
-double Point::getX() const{
+void Point::setNum(unsigned int num) {
+	m_num = num;
+}
+
+void Point::setTension(double tension) {
+	m_tension = tension;
+}
+
+ush Point::getX() const{
 	return m_x;
 }
 
-double Point::getY() const {
+ush Point::getY() const {
 	return m_y;
 }
 
@@ -43,4 +51,8 @@ Mode Point::getMode() const {
 
 int Point::getNum() const {
 	return m_num;
+}
+
+double Point::getTension() const {
+	return m_tension;
 }
