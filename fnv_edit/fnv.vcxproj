@@ -145,8 +145,9 @@
     <ClCompile Include="Point.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Curve.h" />
-    <ClInclude Include="Point.h" />
+    <ClInclude Include="Curve.hpp" />
+    <ClInclude Include="FileManager.hpp" />
+    <ClInclude Include="Point.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

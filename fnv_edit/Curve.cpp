@@ -2,6 +2,7 @@
 
 #include "Curve.h"
 #include "Point.h"
+#include "Curve.hpp"
 
 Curve::Curve(CurveType curveType, std::vector<Point> points) {
 	/* https://t.me/c/1071392087/195908
@@ -44,6 +45,19 @@ Curve::Curve(CurveType curveType, std::vector<Point> points) {
 	}
 }
 
-EnvelopeCurve::EnvelopeCurve(std::vector<Point> points) {
+std::vector<Point> Curve::getPoints() const
+{	
+	return m_points;
+}
+
+EnvelopeCurve::EnvelopeCurve(std::vector<Point> points)
+	: m_attack(0.5f),
+	m_decay(0.5f),
+	m_sustain(1.0f),
+	m_release(0.5f),
+	m_tempo(false),
+	m_global(false),
+	m_isOn(true)
+{
 	// do the construction
 }

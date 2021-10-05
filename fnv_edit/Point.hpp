@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 enum class Mode
 {
     /*
@@ -89,9 +89,9 @@ enum class ArpMode {
 
 struct AdsrMode
 {
-    bool decay;
-    bool loopStart;
-    bool sustain;
+    bool decay = false;
+    bool loopStart = false;
+    bool sustain = false;
     bool* loopEnd = &sustain;
     // in fl, it's written as "Sustain / Loop End" so i
     // might use either of them

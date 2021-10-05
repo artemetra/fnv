@@ -29,10 +29,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Point.h">
+    <ClInclude Include="Curve.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Curve.h">
+    <ClInclude Include="Point.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
