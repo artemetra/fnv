@@ -82,7 +82,8 @@ All of them have their disctinctive features and are saved in .fnv's differently
     _*(This section is highly likely to be changed and will be edited a lot)_  
 
     * 1st byte defines the curve type
-    * Points are saved in chunks of **24 bytes,** which makes it possible to get the number of points in a FNV using only the fnv file size  
+    * Points are saved in chunks of **24 bytes,** which makes it possible to get the number of points in a FNV using only the fnv file size
+	* The ?-8th bytes represent the number of points in a curve
 
 ## _The Differences:_
 
