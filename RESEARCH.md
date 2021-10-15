@@ -84,6 +84,7 @@ All of them have their disctinctive features and are saved in .fnv's differently
     * 1st byte defines the curve type
     * Points are saved in chunks of **24 bytes,** which makes it possible to get the number of points in a FNV using only the fnv file size
 	* The 8th-? bytes represent the number of points in a curve (in little endian)
+	* The x coordinates of points are _not_ absolute, but are relative to the previous point (the x coordinate in the FNV itself stores an offset, rather than a coordinate). This prevents the connections from overlapping
 
 ## _The Differences:_
 
