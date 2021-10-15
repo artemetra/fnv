@@ -9,9 +9,9 @@
 #include "FileManager.hpp"
 
 int main() {
-	
-	auto result = read_first_byte("10 points lfo");
-	std::cout << result << std::endl;
-
+	/* just tests */
+	parseFile("10 points lfo.fnv");
+	parseFile("48k points.fnv");
+	parseFile("50 env points.fnv");
 	return 0;
 }

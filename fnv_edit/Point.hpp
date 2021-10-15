@@ -46,7 +46,7 @@ enum class Mode
     HALF_SINE = 0x09,
     SMOOTH = 0x0A,
     SINGLE_CURVE_3 = 0x0B,
-    DOUBLE_CURVE_3 = 0x0c
+    DOUBLE_CURVE_3 = 0x0C
 };
 
 
@@ -87,6 +87,9 @@ enum class ArpMode {
     NEXT
 };
 
+// I might move these settings to the Curve class since 
+// i found out that all of them are global to the curve
+// and there can only be one point for each  
 struct AdsrMode
 {
     bool decay = false;

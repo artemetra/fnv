@@ -1,10 +1,12 @@
 #include <vector>
 
-#include "Curve.h"
-#include "Point.h"
 #include "Curve.hpp"
+#include "Point.hpp"
 
-Curve::Curve(CurveType curveType, std::vector<Point> points) {
+Curve::Curve() {
+
+}
+/*Curve::Curve(CurveType curveType, std::vector<Point> points) {
 	/* https://t.me/c/1071392087/195908
 	bool isEnvelope = (curveType == CurveType::ENVELOPE);
 	bool isLFO = (curveType == CurveType::LFO;
@@ -31,7 +33,7 @@ Curve::Curve(CurveType curveType, std::vector<Point> points) {
 	}
 
 	*/
-
+/*
 
 	bool isValid = (
 		((curveType == CurveType::ENVELOPE || curveType == CurveType::LFO) && points.size() >= 1) 
@@ -43,21 +45,14 @@ Curve::Curve(CurveType curveType, std::vector<Point> points) {
 		m_type = curveType;
 		m_points = points;
 	}
-}
+}*/
 
 std::vector<Point> Curve::getPoints() const
 {	
 	return m_points;
 }
 
-EnvelopeCurve::EnvelopeCurve(std::vector<Point> points)
-	: m_attack(0.5f),
-	m_decay(0.5f),
-	m_sustain(1.0f),
-	m_release(0.5f),
-	m_tempo(false),
-	m_global(false),
-	m_isOn(true)
+EnvelopeCurve::EnvelopeCurve(std::vector<EnvPoint>& points)
 {
 	// do the construction
 }

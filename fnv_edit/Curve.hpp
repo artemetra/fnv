@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
 
-#include "Point.h"
+#include "Point.hpp"
 
 enum class CurveType {
+	NONE, // only internal, not actually used in files
 	ENVELOPE = 0x01,
 	LFO = 0x02,
 	GRAPH = 0x03,
@@ -27,10 +28,10 @@ private:
 	CurveType m_type = CurveType::ENVELOPE;
 	std::vector<EnvPoint> m_points = {};
 
-	ush m_attack = 0.5f;
-	ush m_decay = 0.5f;
-	ush m_sustain = 1.0f;
-	ush m_release = 0.5f;
+	ush m_attack = 0.5;
+	ush m_decay = 0.5;
+	ush m_sustain = 1.0;
+	ush m_release = 0.5;
 
 	bool m_tempo = false;
 	bool m_global = false;
@@ -38,9 +39,15 @@ private:
 
 public:
 	// TODO: fix this
-	EnvelopeCurve(std::vector<EnvPoint> points);
+	EnvelopeCurve(std::vector<EnvPoint>& points);
 		
-
+	/* : m_attack(0.5),
+		m_decay(0.5),
+		m_sustain(1.0),
+		m_release(0.5),
+		m_tempo(false),
+		m_global(false),
+		m_isOn(true)*/
 	std::vector<EnvPoint> getPoints() const;
 
 	ush getAttack() const;
@@ -69,9 +76,10 @@ private:
 	bool m_tempo;
 	bool m_global;
 	bool m_isOn;
+	bool m_bipolar;
 
 public:
-	LfoCurve(std::vector<EnvPoint> points);
+	LfoCurve(std::vector<EnvPoint>& points);
 
 	std::vector<EnvPoint> getPoints() const;
 
@@ -90,4 +98,6 @@ class GraphCurve : protected Curve {
 private:
 	CurveType m_type = CurveType::GRAPH;
 	const unsigned int MIN_POINTS = 2;
+public:
+	GraphCurve(std::vector<EnvPoint>& points);
 };
