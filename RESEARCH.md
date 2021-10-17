@@ -128,6 +128,14 @@ Number of points formula:
 `N = (F-76)/24`,
 where N - number of points, F - file size in bytes
 
+| Byte | Frozen | Bipolar |
+| :--: | :---: | :----: |
+| `07` | Off   | Off    |
+| `0F` | On    | Off    |
+| `03` | Off   | On     |
+| `0B` | On    | On     |
+
+
 ## Graph  
 First byte in header: `03`
 
