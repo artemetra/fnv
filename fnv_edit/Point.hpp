@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 enum class Mode
 {
     /*
@@ -51,68 +52,51 @@ enum class Mode
 
 
 
-typedef unsigned short ush;
+typedef unsigned short ush_t;
 class Point {
 protected:
-    unsigned int m_num;
-    ush m_x;
-    ush m_y;
+    uint32_t m_num;
+    ush_t m_x;
+    ush_t m_y;
 
     Mode m_mode;
     double m_tension;
 
 public:
-    Point(ush x, ush y, Mode mode);
+    Point(ush_t x, ush_t y, Mode mode);
 
-    void setX(ush x);
-    void setY(ush y);
+    void setX(ush_t x);
+    void setY(ush_t y);
     void setMode(Mode mode);
-    void setNum(unsigned int num);
+    void setNum(uint32_t num);
     void setTension(double tension);
 
-    ush getX() const;
-    ush getY() const;
+    ush_t getX() const;
+    ush_t getY() const;
     Mode getMode() const;
-    int getNum() const;
+    uint32_t getNum() const;
     double getTension() const;
 
 };
 
 enum class ArpMode {
-    // TODO: reverse engineer the bytes corresponding to
-    // arpeggiator breaks
-    NONE,
-    PREVIOUS,
-    SAME,
-    NEXT
+    NONE = 0x00,
+    PREVIOUS = 0x01,
+    SAME = 0x02,
+    NEXT = 0x03
 };
-
-// I might move these settings to the Curve class since 
-// i found out that all of them are global to the curve
-// and there can only be one point for each  
-struct AdsrMode
-{
-    bool decay = false;
-    bool loopStart = false;
-    bool sustain = false;
-    bool* loopEnd = &sustain;
-    // in fl, it's written as "Sustain / Loop End" so i
-    // might use either of them
-};
-
 
 class EnvPoint : protected Point {
 private:
     ArpMode m_arpMode;
-    AdsrMode m_adsrMode;
+    
 public:
     // TODO: add implementations for these
     EnvPoint();
 
     void setArpMode(ArpMode arpMode);
-    void setAdsrMode(AdsrMode adsrMode);
-
+    
     ArpMode getArpMode() const;
-    AdsrMode getAdsrMode() const;
+    
 };
 

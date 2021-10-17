@@ -10,8 +10,12 @@
 
 int main() {
 	/* just tests */
-	parseFile("10 points lfo.fnv");
+	parseFile("3896 points.fnv");
 	parseFile("48k points.fnv");
+	parseFile("fnv.vcxproj.filters");
+	parseFile("drtyogifg.fnv");
+	parseFile("Fuzzy.fnv");
 	parseFile("50 env points.fnv");
+	
 	return 0;
 }

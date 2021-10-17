@@ -10,6 +10,15 @@ enum class CurveType {
 	GRAPH = 0x03,
 };
 
+/*struct ADSR_Section
+{
+	uint32_t decay = false;
+	bool loopStart = false;
+	bool sustain = false;
+	bool* loopEnd = &sustain;
+	// in fl, it's written as "Sustain / Loop End" so i
+	// might use either of them
+};*/
 
 class Curve {
 protected:
@@ -22,16 +31,37 @@ public:
 
 };
 
+struct Flags {
+	bool m_tempo;
+	bool m_global;
+	bool m_isOn;
+};
+
+
+struct ADSR_Section {
+	// default values, meaning that no point in the curve
+	// actually has these values
+	uint32_t decay = 0xFFFFFFFF;
+	uint32_t loopStart = 0xFFFFFFFF;
+	uint32_t sustain = 0xFFFFFFFF;
+
+	uint32_t* loopEnd = &sustain;
+	// in fl, it's written as "Sustain / Loop End" so i
+	// might use either of them
+};
+
 class EnvelopeCurve : protected Curve {
 private:
+	
+	ADSR_Section m_adsrPoints;
 
 	CurveType m_type = CurveType::ENVELOPE;
 	std::vector<EnvPoint> m_points = {};
 
-	ush m_attack = 0.5;
-	ush m_decay = 0.5;
-	ush m_sustain = 1.0;
-	ush m_release = 0.5;
+	ush_t m_attack = 0.5;
+	ush_t m_decay = 0.5;
+	ush_t m_sustain = 1.0;
+	ush_t m_release = 0.5;
 
 	bool m_tempo = false;
 	bool m_global = false;
@@ -50,10 +80,10 @@ public:
 		m_isOn(true)*/
 	std::vector<EnvPoint> getPoints() const;
 
-	ush getAttack() const;
-	ush getDecay() const;
-	ush getSustain() const;
-	ush getRelease() const;
+	ush_t getAttack() const;
+	ush_t getDecay() const;
+	ush_t getSustain() const;
+	ush_t getRelease() const;
 
 	bool isTempo() const;
 	bool isGlobal() const;
@@ -63,30 +93,30 @@ public:
 class LfoCurve : protected Curve {
 private:
 
+	ADSR_Section m_adsrPoints;
+
 	CurveType m_type = CurveType::LFO;
 	std::vector<EnvPoint> m_points = {};
 
-	ush m_speed;
-	ush m_lfoTension; // the name is a bit ambiguous with point tension
-	ush m_skew;
-	ush m_pulsewidth;
+	ush_t m_speed;
+	ush_t m_lfoTension; // the name is a bit ambiguous with point tension
+	ush_t m_skew;
+	ush_t m_pulsewidth;
 
 	double m_phase;
 
-	bool m_tempo;
-	bool m_global;
-	bool m_isOn;
-	bool m_bipolar;
+	bool m_isBipolar;
+	bool m_isFrozen;
 
 public:
 	LfoCurve(std::vector<EnvPoint>& points);
 
 	std::vector<EnvPoint> getPoints() const;
 
-	ush getSpeed() const;
-	ush getLfoTension() const;
-	ush getSkew() const;
-	ush getPulsewidth() const;
+	ush_t getSpeed() const;
+	ush_t getLfoTension() const;
+	ush_t getSkew() const;
+	ush_t getPulsewidth() const;
 	double getPhase() const;
 	bool isTempo() const;
 	bool isGlobal() const;
