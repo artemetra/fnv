@@ -27,14 +27,23 @@ inline bool ends_with(std::string const& value, std::string const& ending) {
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-inline void skipBytes(std::ifstream& file, size_t amt) {
-    file.seekg(size_t(file.tellg()) + amt);
+void skipBytes(std::ifstream& file, size_t chunks) {
+    uint32_t bytes;
+    for (int i = 0; i != chunks; i++) {
+        file.read(reinterpret_cast<char*>(&bytes), 4);
+        std::cout << std::hex << "\t - Read 4 bytes at "
+            << file.tellg() << "-" << (uint64_t(file.tellg()) + 4)
+            << ": " << std::dec << bytes << std::endl;
+    }
+    //file.seekg(uint64_t(uint64_t(file.tellg()) + amt));
 }
 
 static void _parseFile(std::ifstream& file) {
     CurveType type = getType(file);
-    skipBytes(file, 4);
+    // expect these since i haven't figured out what the all the bytes mean yet :')
+    skipBytes(file, 1);
     uint32_t numberOfPoints = getSize(file);
+
 }
 
 void parseFile(const std::string& file_name) {
@@ -67,6 +76,10 @@ CurveType getType(std::ifstream& file) {
         case 0x03:
             std::cout << "Parsed fnv is of type graph" << std::endl;
             return CurveType::GRAPH;
+        case 0x07:
+            std::cout << "Parsed fnv is of type map" << std::endl;
+            return CurveType::MAP;
+            
         default:
             std::cout << "Invalid file header!" << std::endl;
             return CurveType::NONE;

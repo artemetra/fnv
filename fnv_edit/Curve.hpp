@@ -8,6 +8,7 @@ enum class CurveType {
 	ENVELOPE = 0x01,
 	LFO = 0x02,
 	GRAPH = 0x03,
+	MAP = 0x07
 };
 
 /*struct ADSR_Section
@@ -129,5 +130,13 @@ private:
 	CurveType m_type = CurveType::GRAPH;
 	const unsigned int MIN_POINTS = 2;
 public:
-	GraphCurve(std::vector<EnvPoint>& points);
+	GraphCurve(std::vector<Point>& points);
+};
+
+class MapCurve : protected Curve {
+private:
+	CurveType m_type = CurveType::MAP;
+	const unsigned int MIN_POINTS = 2;
+public:
+	MapCurve(std::vector<Point>& points);
 };
