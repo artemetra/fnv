@@ -19,6 +19,7 @@ Apart from being just the examples, these are actually the only types of curves 
 * Envelope
 * LFO Envelope
 * Graph
+* **NEW!** Map - quite rare, only exists in a handful of standard fl files, and i'm still not sure how it differs compared to Graph (basically has the exact same features and functionality but the header number is 07!)
 * Automation clips.*
 
   ##### \* - automation clips can't actually be saved in fnv files directly, but their _states_ can be copied and pasted inside FL. More on   that later
