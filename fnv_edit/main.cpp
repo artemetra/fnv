@@ -25,6 +25,8 @@ int main() {
 	//parseFile("drtyogifg.fnv");
 	//parseFile("Fuzzy.fnv");
 	//parseFile("50 env points.fnv");
-	testEveryFnv();
+	Point bruh = Point(0.1f, 0.2f, Mode::HOLD);
+	//testEveryFnv();
+	std::cout << sizeof(bruh) << '\n';
 	return 0;
 }

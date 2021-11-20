@@ -3,7 +3,7 @@
 #include "Curve.hpp"
 #include "Point.hpp"
 
-Curve::Curve() {
+Curve::Curve(std::vector<Point>& points) {
 
 }
 /*Curve::Curve(CurveType curveType, std::vector<Point> points) {
@@ -47,12 +47,51 @@ Curve::Curve() {
 	}
 }*/
 
-std::vector<Point> Curve::getPoints() const
-{	
+inline const std::vector<Point>& Curve::vector() const {
 	return m_points;
 }
 
-EnvelopeCurve::EnvelopeCurve(std::vector<EnvPoint>& points)
-{
+inline std::vector<EnvPoint> SharedEnvCurve::vector() const {
+	return m_points;
+}
+
+inline Point Curve::operator[](const uint32_t& index) const {
+	return m_points[index];
+}
+
+inline EnvPoint SharedEnvCurve::operator[](const uint32_t index) const {
+	return m_points[index];
+}
+
+
+EnvelopeCurve::EnvelopeCurve(std::vector<EnvPoint>& points) {
 	// do the construction
+}
+
+inline ush_t EnvelopeCurve::getAttack() const {
+	return m_attack;
+}
+
+inline ush_t EnvelopeCurve::getDecay() const {
+	return m_decay;
+}
+
+inline ush_t EnvelopeCurve::getSustain() const {
+	return m_sustain;
+}
+
+inline ush_t EnvelopeCurve::getRelease() const {
+	return m_release;
+}
+
+inline bool EnvelopeCurve::isTempo() const {
+	return m_flags.m_tempo;
+}
+
+inline bool EnvelopeCurve::isGlobal() const {
+	return m_flags.m_global;
+}
+
+inline bool EnvelopeCurve::isOn() const {
+	return m_flags.m_on;
 }

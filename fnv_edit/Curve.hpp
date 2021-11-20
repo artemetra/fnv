@@ -27,17 +27,29 @@ protected:
 	CurveType m_type = CurveType::GRAPH;
 	std::vector<Point> m_points = {};
 public:
-	Curve();
-	std::vector<Point> getPoints() const;
+	Curve(const std::vector<Point>& points);
+	inline const std::vector<Point>& vector() const;
+	inline Point operator[](const uint32_t& index) const;
+};
 
+class GraphCurve : protected Curve {
+protected:
+	CurveType m_type = CurveType::GRAPH;
+	const unsigned int MIN_POINTS = 2;
+public:
+	GraphCurve(std::vector<Point>& points);
+};
+
+class MapCurve : protected GraphCurve {
+public:
+	MapCurve(std::vector<Point>& points);
 };
 
 struct Flags {
-	bool m_tempo;
-	bool m_global;
-	bool m_isOn;
+	bool m_tempo = false;
+	bool m_global = false;
+	bool m_on = false;
 };
-
 
 struct ADSR_Section {
 	// default values, meaning that no point in the curve
@@ -51,27 +63,32 @@ struct ADSR_Section {
 	// might use either of them
 };
 
-class EnvelopeCurve : protected Curve {
-private:
+class SharedEnvCurve {
+protected:
+	const unsigned int MIN_POINTS = 1;
 	
-	ADSR_Section m_adsrPoints;
-
-	CurveType m_type = CurveType::ENVELOPE;
 	std::vector<EnvPoint> m_points = {};
 
+	ADSR_Section m_adsrPoints;
+	Flags m_flags;
+
+public:
+	inline std::vector<EnvPoint> vector() const;
+	inline EnvPoint operator[](const uint32_t index) const;
+};
+
+class EnvelopeCurve : protected SharedEnvCurve {
+private:
+	CurveType m_type = CurveType::ENVELOPE;
+	
 	ush_t m_attack = 0.5;
 	ush_t m_decay = 0.5;
 	ush_t m_sustain = 1.0;
 	ush_t m_release = 0.5;
 
-	bool m_tempo = false;
-	bool m_global = false;
-	bool m_isOn = false;
-
 public:
 	// TODO: fix this
 	EnvelopeCurve(std::vector<EnvPoint>& points);
-		
 	/* : m_attack(0.5),
 		m_decay(0.5),
 		m_sustain(1.0),
@@ -79,26 +96,21 @@ public:
 		m_tempo(false),
 		m_global(false),
 		m_isOn(true)*/
-	std::vector<EnvPoint> getPoints() const;
+	inline ush_t getAttack() const;
+	inline ush_t getDecay() const;
+	inline ush_t getSustain() const;
+	inline ush_t getRelease() const;
 
-	ush_t getAttack() const;
-	ush_t getDecay() const;
-	ush_t getSustain() const;
-	ush_t getRelease() const;
-
-	bool isTempo() const;
-	bool isGlobal() const;
-	bool isOn() const;
+	inline bool isTempo() const;
+	inline bool isGlobal() const;
+	inline bool isOn() const;
 };
 
-class LfoCurve : protected Curve {
+class LfoCurve : protected SharedEnvCurve {
 private:
 
-	ADSR_Section m_adsrPoints;
-
 	CurveType m_type = CurveType::LFO;
-	std::vector<EnvPoint> m_points = {};
-
+	
 	ush_t m_speed;
 	ush_t m_lfoTension; // the name is a bit ambiguous with point tension
 	ush_t m_skew;
@@ -111,9 +123,7 @@ private:
 
 public:
 	LfoCurve(std::vector<EnvPoint>& points);
-
-	std::vector<EnvPoint> getPoints() const;
-
+	
 	ush_t getSpeed() const;
 	ush_t getLfoTension() const;
 	ush_t getSkew() const;
@@ -125,18 +135,3 @@ public:
 
 };
 
-class GraphCurve : protected Curve {
-private:
-	CurveType m_type = CurveType::GRAPH;
-	const unsigned int MIN_POINTS = 2;
-public:
-	GraphCurve(std::vector<Point>& points);
-};
-
-class MapCurve : protected Curve {
-private:
-	CurveType m_type = CurveType::MAP;
-	const unsigned int MIN_POINTS = 2;
-public:
-	MapCurve(std::vector<Point>& points);
-};

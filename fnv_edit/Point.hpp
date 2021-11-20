@@ -1,5 +1,9 @@
 #pragma once
-#include <stdint.h>
+
+#include <stdint.h> // uint32_t
+
+typedef unsigned short ush_t;
+
 enum class Mode
 {
     /*
@@ -50,32 +54,38 @@ enum class Mode
     DOUBLE_CURVE_3 = 0x0C
 };
 
+// used in Curve* isPartOf (line 69) because
+// #include "Curve.hpp" leads to circular inclusion
+class Curve; 
 
-
-typedef unsigned short ush_t;
 class Point {
 protected:
     uint32_t m_num;
-    ush_t m_x;
+    ush_t m_xOffset;
+    ush_t m_xAbsolute;
     ush_t m_y;
 
     Mode m_mode;
     double m_tension;
 
 public:
-    Point(ush_t x, ush_t y, Mode mode);
+    Curve* partOf;
 
-    void setX(ush_t x);
-    void setY(ush_t y);
-    void setMode(Mode mode);
-    void setNum(uint32_t num);
-    void setTension(double tension);
+    Point(const ush_t& x, const ush_t& y, const Mode& mode);
 
-    ush_t getX() const;
-    ush_t getY() const;
-    Mode getMode() const;
-    uint32_t getNum() const;
-    double getTension() const;
+    virtual void setXOffset(const ush_t& x);
+    void setY(const ush_t& y);
+    void setMode(const Mode& mode);
+    void setNum(const uint32_t& num);
+    void setTension(const double& tension);
+
+    ush_t calculateAbsoluteX();
+    inline ush_t getXOffset() const;
+    inline ush_t getXAbsolute() const;
+    inline ush_t getY() const;
+    inline Mode getMode() const;
+    inline uint32_t getNum() const;
+    inline double getTension() const;
 
 };
 
@@ -92,11 +102,11 @@ private:
     
 public:
     // TODO: add implementations for these
-    EnvPoint();
+    EnvPoint(const ush_t& x, const ush_t& y, const Mode& mode, const ArpMode& arpMode);
 
     void setArpMode(ArpMode arpMode);
-    
-    ArpMode getArpMode() const;
+    void setXOffset(const ush_t& x);
+    inline ArpMode getArpMode() const;
     
 };
 

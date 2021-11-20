@@ -1,56 +1,76 @@
-#include<iostream>
-#include<stdexcept>
-#include<string>
-#include<stdint.h>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <stdint.h> // uint32_t
 
-#include"Point.hpp"
+#include "Curve.hpp"
+#include "Point.hpp"
 
-Point::Point(ush_t x, ush_t y, Mode mode) {
+Point::Point(const ush_t& x, const ush_t& y, const Mode& mode) : m_xOffset(), m_mode(mode) {
 	
-	setX(x);
+	setXOffset(x);
 	setY(y);
-	setMode(mode);
 }
 
-
-void Point::setX(ush_t x) {
-	//TODO: figure out the limits on the x value
-	m_x = x;
+EnvPoint::EnvPoint(const ush_t& x, const ush_t& y, const Mode& mode, const ArpMode& arpMode) {
+	;
 }
 
-void Point::setY(ush_t y) {
+ush_t Point::calculateAbsoluteX() {
+	auto curveVectorRef = partOf->vector();
 
-	if (y > 1) {
-		std::cout << "Y coordinate must be in range [0,1] (inclusively). Input: " << y << std::endl;
-	} else { 
-		m_y = y; 
-	}
 }
 
-void Point::setMode(Mode mode) {
+void Point::setXOffset(const ush_t& x) {
+	if (x > 1) 
+		std::cerr << "X coordinate must be in range [0,1] (inclusively). Received: " << x << std::endl;
+	else m_xOffset = x;
+}
+
+void EnvPoint::setXOffset(const ush_t& x) {
+	m_xOffset = x;
+}
+
+void Point::setY(const ush_t& y) {
+	// TODO: proper errors/error messages
+	if (y > 1)
+		std::cerr << "Y coordinate must be in range [0,1] (inclusively). Received: " << y << std::endl;
+	else m_y = y; 
+}
+
+void Point::setMode(const Mode& mode) {
 	m_mode = mode;
 }
 
-void Point::setNum(uint32_t num) {
+void Point::setNum(const uint32_t& num) {
+	// TODO: add restrictions
 	m_num = num;
 }
 
-void Point::setTension(double tension) {
+void Point::setTension(const double& tension) {
 	m_tension = tension;
 }
 
-ush_t Point::getX() const{
-	return m_x;
+inline ush_t Point::getXOffset() const {
+	return m_xOffset;
 }
 
-ush_t Point::getY() const {
+inline ush_t Point::getXAbsolute() const {
+	return m_xAbsolute;
+}
+
+inline ush_t Point::getY() const {
 	return m_y;
 }
 
-Mode Point::getMode() const {
+inline Mode Point::getMode() const {
 	return m_mode;
 }
 
-double Point::getTension() const {
+inline uint32_t Point::getNum() const {
+	return m_num;
+}
+
+inline double Point::getTension() const {
 	return m_tension;
 }
