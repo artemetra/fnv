@@ -14,3 +14,6 @@ for more info, read RESEARCH.md
 - [ ] Possible support for Serum's .shp and Vital's .vitallfo (might be the easiest, since it's just a minified JSON string)
 - [ ] Possible support for synchronising FL Studio with the editor (not sure, since it most likely would include hacking into FL Studio's process memory)
 - [ ] Kaitai struct implemenation
+
+
+- [ ] RIIR?..
