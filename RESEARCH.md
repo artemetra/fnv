@@ -90,6 +90,7 @@ All of them have their disctinctive features and are saved in .fnv's differently
 	* The x coordinates of points are _not_ absolute, but are relative to the previous point (the x coordinate in the FNV itself stores an offset, rather than a coordinate). This prevents the connections from overlapping
 	* The maximum number of points is the unsinged 32 bit integer limit, being 4294967295
 	* The last 32 bytes (the "footer") define global settings, such as being on/off, lfo phase 
+	* ‼️New discovery: i have reverse engineered 3 out of 4 bytes that make up a `y` coordinate: given a floating point number or the coordinate, convert it to its binary representation, bitshift to the right by 3 bits, and reverse the last three digits. whilst the first byte didn't work out, the other three will match the one that is in an fnv point representation.
 	
 
 ## _The Differences:_
