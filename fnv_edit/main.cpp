@@ -3,11 +3,12 @@
 #include <ios>
 #include <string>
 #include <iomanip>
+#include <filesystem> // std::filesystem
+#include <memory>
 
 #include "Point.hpp"
 #include "Curve.hpp"
 #include "FileManager.hpp"
-#include <filesystem>
 
 void testEveryFnv() {
 	//https://stackoverflow.com/a/612176/14296133
@@ -25,8 +26,10 @@ int main() {
 	//parseFile("drtyogifg.fnv");
 	//parseFile("Fuzzy.fnv");
 	//parseFile("50 env points.fnv");
-	Point bruh = Point(0.1f, 0.2f, Mode::HOLD);
+	//std::shared_ptr<Curve> cur = std::make_shared<Curve>();
+	//PointDefArgs pointDefaultParams;
+	//Point point = Point(cur, 1, 1, pointDefaultParams);
 	//testEveryFnv();
-	std::cout << sizeof(bruh) << '\n';
+	//std::cout << sizeof(point) << '\n';
 	return 0;
 }

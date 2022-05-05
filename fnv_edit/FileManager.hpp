@@ -8,5 +8,5 @@
 
 void parseFile(const std::string& file_name);
 
-CurveType getType(std::ifstream& file);
-uint32_t getSize(std::ifstream& file);
+CurveType getType(const std::ifstream& file);
+uint32_t getSize(const std::ifstream& file);

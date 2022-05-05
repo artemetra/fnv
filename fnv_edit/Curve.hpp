@@ -11,15 +11,13 @@ enum class CurveType {
 	MAP = 0x07
 };
 
-/*struct ADSR_Section
-{
-	uint32_t decay = false;
-	bool loopStart = false;
-	bool sustain = false;
-	bool* loopEnd = &sustain;
-	// in fl, it's written as "Sustain / Loop End" so i
-	// might use either of them
-};*/
+enum class CurveParsingType {
+	NONE, // only internal, not actually used in files
+	___ZERO = 0x00,
+	___K = 0x01,
+	___LFO = 0x02,
+	USER = 0x03,
+};
 
 class Curve {
 protected:
@@ -51,7 +49,7 @@ struct Flags {
 	bool m_on = false;
 };
 
-struct ADSR_Section {
+struct Env_ADSR_Section {
 	// default values, meaning that no point in the curve
 	// actually has these values
 	uint32_t decay = 0xFFFFFFFF;
@@ -63,13 +61,19 @@ struct ADSR_Section {
 	// might use either of them
 };
 
+struct LFO_ADSR_Section {
+	uint32_t loopStart = 0xFFFFFFFF;
+	uint32_t sustain = 0xFFFFFFFF;
+
+	uint32_t* loopEnd = &sustain;
+};
+
 class SharedEnvCurve {
 protected:
 	const unsigned int MIN_POINTS = 1;
 	
 	std::vector<EnvPoint> m_points = {};
 
-	ADSR_Section m_adsrPoints;
 	Flags m_flags;
 
 public:
@@ -79,6 +83,8 @@ public:
 
 class EnvelopeCurve : protected SharedEnvCurve {
 private:
+	Env_ADSR_Section m_adsrPoints;
+
 	CurveType m_type = CurveType::ENVELOPE;
 	
 	ush_t m_attack = 0.5;
@@ -111,6 +117,8 @@ private:
 
 	CurveType m_type = CurveType::LFO;
 	
+	LFO_ADSR_Section m_adsrPoints;
+
 	ush_t m_speed;
 	ush_t m_lfoTension; // the name is a bit ambiguous with point tension
 	ush_t m_skew;

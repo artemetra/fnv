@@ -38,19 +38,18 @@ void skipBytes(std::ifstream& file, size_t chunks) {
     //file.seekg(uint64_t(uint64_t(file.tellg()) + amt));
 }
 
-static void _parseFile(std::ifstream& file) {
+static void readFile(std::ifstream& file) {
     CurveType type = getType(file);
     // expect these since i haven't figured out what the all the bytes mean yet :')
     skipBytes(file, 1);
     uint32_t numberOfPoints = getSize(file);
-
 }
 
 void parseFile(const std::string& file_name) {
     std::cout << "\nReading file \"" << file_name << "\"..." << std::endl;
     if (ends_with(file_name, ".fnv")) {
         if (std::ifstream file{ file_name, std::ios::binary }) {
-            _parseFile(file);
+            readFile(file);
         } else {
             std::cerr << "Couldn't open file " << file_name << "!" << std::endl;
         }

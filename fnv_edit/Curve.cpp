@@ -3,7 +3,7 @@
 #include "Curve.hpp"
 #include "Point.hpp"
 
-Curve::Curve(std::vector<Point>& points) {
+Curve::Curve(const std::vector<Point>& points) {
 
 }
 /*Curve::Curve(CurveType curveType, std::vector<Point> points) {

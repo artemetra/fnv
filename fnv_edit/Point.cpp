@@ -2,23 +2,39 @@
 #include <stdexcept>
 #include <string>
 #include <stdint.h> // uint32_t
+#include <memory> // shared_ptr
 
 #include "Curve.hpp"
 #include "Point.hpp"
 
-Point::Point(const ush_t& x, const ush_t& y, const Mode& mode) : m_xOffset(), m_mode(mode) {
-	
+Point::Point(const std::shared_ptr<Curve> isPartOf,
+	const ush_t& x, const ush_t& y,
+	const PointDefArgs& defParams) 
+	: partOf(isPartOf)
+{
+	m_mode = defParams.mode;
+	m_tension = defParams.tension;
 	setXOffset(x);
 	setY(y);
+	m_num = 4;
 }
+
+/*void Point::m_setDefaultParams(const PointDefArgs& defParams) {
+	m_mode = defParams.mode;
+	m_tension = defParams.tension;
+	if (defParams.passedXIsOffseted) {
+		setXOffset()
+	}
+}*/
 
 EnvPoint::EnvPoint(const ush_t& x, const ush_t& y, const Mode& mode, const ArpMode& arpMode) {
 	;
 }
 
-ush_t Point::calculateAbsoluteX() {
+double Point::calculateAbsoluteX() {
 	auto curveVectorRef = partOf->vector();
-
+	// not implemented
+	return 0.0f;
 }
 
 void Point::setXOffset(const ush_t& x) {

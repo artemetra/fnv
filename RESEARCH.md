@@ -85,7 +85,7 @@ All of them have their disctinctive features and are saved in .fnv's differently
     _*(This section is highly likely to be changed and will be edited a lot)_  
 
     * 1st byte defines the curve type
-    * Points are saved in chunks of **24 bytes,** which makes it possible to get the number of points in a FNV using only the fnv file size
+    * Points are saved in chunks of **24 bytes,** (6 DWORDs?) which makes it possible to get the number of points in a FNV using only the fnv file size
 	* The 0x8th-0xBth bytes represent the number of points in a curve (in little endian)
 	* The x coordinates of points are _not_ absolute, but are relative to the previous point (the x coordinate in the FNV itself stores an offset, rather than a coordinate). This prevents the connections from overlapping
 	* The maximum number of points is the unsinged 32 bit integer limit, being 4294967295
@@ -108,10 +108,11 @@ Number of points formula:
 where N - number of points, F - file size in bytes
 
 In the footer, the first 4 bytes are FF FF FF FF (they might be a separator, however, as we may see now, they can also represent global values).
-By default, the next 3 chunks of 4 bytes are all FF, however, they actually specify which points have the ADSR section flags. First chunks is for Decay, second is for Loop start, and the third is for Sustain / Loop end (the list matches the order of the options in FL). Each chuck is just an index of a point that has these values turned on, and if none do, it goes to the default value (4 FF bytes)
+By default, the next 3 DWORDs are all FF, however, they actually specify which points have the ADSR section flags. First DWORD is for Decay, second is for Loop start, and the third is for Sustain / Loop end (the list matches the order of the options in FL). Each chuck is just an index of a point that has these values turned on, and if none do, it goes to the default value (4 FF bytes)
 
 ## LFO Envelope
 
+chunk
 Minimum number of points: 1
 
 First byte in header: `02`  
