@@ -5,3 +5,4 @@ fnv_edit/Debug
 fnv_edit/_tests
 Cargo.lock
 fnvcli/target/
+fnv_edit_legacy/
