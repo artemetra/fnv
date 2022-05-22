@@ -1,37 +1,44 @@
-enum CurveType {
-    None, // internal
+use crate::point::{Point, EnvPoint};
+
+#[derive(Debug)]
+pub enum CurveType {
+    None,
     Envelope = 0x01,
     Lfo = 0x02,
-	Graph = 0x03,
-	Map = 0x07,
-}
-
-struct Curve {
-    points: Vec<Point>,
+    Graph = 0x03,
+    Map = 0x07,
 }
 
 #[derive(Default)]
-struct Flags {
-    m_tempo: bool,
-	m_global: bool,
-	m_on: bool,
+pub struct Flags {
+    tempo: bool,
+    global: bool,
+    on: bool,
 }
 
 
-struct EnvADSRSection {
+pub struct EnvADSRIndices {
     decay: u32,
     loop_start: u32,
-    
-    // in fl, it's written as "Sustain / Loop End" so i'm unsure which one to use
+    // in FL, it's written as "Sustain / Loop End" so i'm unsure which one to use
     sustain: u32,
 }
 
 // i really should use traits
-struct LfoADSRSection {
+pub struct LfoADSRIndices {
     loop_start: u32,
     sustain: u32,
 }
 
-struct GraphCurve {
+pub trait CurveTrait {
+    fn point_count() -> u32;
+}
+
+pub struct GraphCurve {
     points: Vec<Point>,
+}
+
+pub struct EnvCurve {
+    points: Vec<EnvPoint>,
+    adsr: EnvADSRIndices,
 }

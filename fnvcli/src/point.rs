@@ -1,4 +1,5 @@
-enum PointMode {
+use crate::curve::CurveTrait;
+pub enum PointMode {
     SingleCurve = 0x00,
     DoubleCurve = 0x01,
     Hold = 0x02,
@@ -14,24 +15,34 @@ enum PointMode {
     DoubleCurve3 = 0x0C,
 }
 
-enum ArpMode {
+pub enum ArpMode {
     None = 0x00,
     Prev = 0x01,
     Same = 0x02,
     Next = 0x03,
 }
 
-struct Point {
-    x: f32, // offset value
+
+pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
+where C: CurveTrait,
+{
+    // not implemented
+    0 as f32
+}
+
+pub trait PointTrait {
+
+}
+
+pub struct Point {
+    x: f32, // absolute value
     y: f32,
     tension: f32,
     mode: PointMode,
 }
 
-// I'm really unsure about this: probably needs to be
-// rewritten using traits
-struct EnvPoint {
-    x: f32, // offset value
+pub struct EnvPoint {
+    x: f32, // absolute value
     y: f32,
     tension: f32,
     mode: PointMode,
