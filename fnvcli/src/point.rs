@@ -22,17 +22,15 @@ pub enum ArpMode {
     Next = 0x03,
 }
 
-
 pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
-where C: CurveTrait,
+where
+    C: CurveTrait,
 {
     // not implemented
     0 as f32
 }
 
-pub trait PointTrait {
-
-}
+pub trait PointTrait {}
 
 pub struct Point {
     x: f32, // absolute value

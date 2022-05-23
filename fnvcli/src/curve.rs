@@ -1,4 +1,4 @@
-use crate::point::{Point, EnvPoint};
+use crate::point::{EnvPoint, Point};
 
 #[derive(Debug)]
 pub enum CurveType {
@@ -15,7 +15,6 @@ pub struct Flags {
     global: bool,
     on: bool,
 }
-
 
 pub struct EnvADSRIndices {
     decay: u32,
