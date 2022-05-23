@@ -4,8 +4,9 @@ Research into reverse engineering fl studio's .fnv (curve/envelope/state) files 
 for more info, read RESEARCH.md
 
 # Project plans:
-- [ ] Complete reverse engineering of the format + an unofficial spec
-- [ ] Command-line app
+- [-] RIIR?.. - in process!
+- [-] Complete reverse engineering of the format + an unofficial spec
+- [-] Command-line app
   * [ ] ability to convert JSON to .fnv and vice versa;
   * [ ] support for different streams (stdout, from file, pipe etc.)
 - [ ] A full, Qt-based WYSIWYG visual editor
@@ -16,4 +17,3 @@ for more info, read RESEARCH.md
 - [ ] Kaitai struct implemenation
 
 
-- [ ] RIIR?..
