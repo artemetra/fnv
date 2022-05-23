@@ -3,3 +3,6 @@ fnv_edit/.vs
 fnv_edit/Debug
 *.fnv
 fnv_edit/_tests
+Cargo.lock
+fnvcli/target/
+fnv_edit_legacy/

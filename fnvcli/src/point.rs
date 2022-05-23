@@ -1,0 +1,48 @@
+use crate::curve::CurveTrait;
+pub enum PointMode {
+    SingleCurve = 0x00,
+    DoubleCurve = 0x01,
+    Hold = 0x02,
+    Stairs = 0x03,
+    SmoothStairs = 0x04,
+    Pulse = 0x05,
+    Wave = 0x06,
+    SingleCurve2 = 0x07,
+    DoubleCurve2 = 0x08,
+    HalfSine = 0x09,
+    Smooth = 0x0A,
+    SingleCurve3 = 0x0B,
+    DoubleCurve3 = 0x0C,
+}
+
+pub enum ArpMode {
+    None = 0x00,
+    Prev = 0x01,
+    Same = 0x02,
+    Next = 0x03,
+}
+
+pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
+where
+    C: CurveTrait,
+{
+    // not implemented
+    0 as f32
+}
+
+pub trait PointTrait {}
+
+pub struct Point {
+    x: f32, // absolute value
+    y: f32,
+    tension: f32,
+    mode: PointMode,
+}
+
+pub struct EnvPoint {
+    x: f32, // absolute value
+    y: f32,
+    tension: f32,
+    mode: PointMode,
+    arp_mode: ArpMode,
+}
