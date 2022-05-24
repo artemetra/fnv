@@ -59,13 +59,21 @@ pub mod file_reader {
     // https://reverseengineering.stackexchange.com/questions/30363/floating-point-number-mangled-in-a-proprietary-file/30364#30364
     pub fn read_fnv_float(bytes: u32) -> f32 {
         const FNV_FLOAT_MASK: u32 = 0x7000000;
+        let f = bytes ^ FNV_FLOAT_MASK;
+        let f = swaplow3(f);
+        let f = ror32(f, -3);
+        f32::from_bits(f)
+    }
+    // for writing floats:
+    pub fn _write_fnv_float(bytes: u32) -> f32 {
+        const FNV_FLOAT_MASK: u32 = 0x7000000;
         let f = ror32(bytes, 3);
         let f = swaplow3(f);
         let f = f ^ FNV_FLOAT_MASK;
         f32::from_bits(f)
     }
 
-    fn ror32(x: u32, n: u32) -> u32 {
+    fn ror32(x: u32, n: i32) -> u32 {
         let n = n & 31;
         let low = x >> n;
         let high = (x << (32 - n)) & 0xFFFFFFFF;
