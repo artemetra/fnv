@@ -70,7 +70,9 @@ pub mod file_reader {
             *fi.next().unwrap(),
             *fi.next().unwrap(),
             *fi.next().unwrap(),
-        ]);
+            ]);
+        skip_n_bytes(&mut fi, 11)?;
+        
         Ok(()) // should be removed
     }
 
@@ -137,8 +139,9 @@ pub mod file_reader {
     }
 
     fn skip_n_bytes(fi: &mut Iter<u8>, n: u8) -> Result<(), FnvReadError> {
-        for _ in 0..=n {
-            assert_zero(fi.next().unwrap())?;
+        println!("skipping {} bytes", n);
+        for _ in 0..n {
+            fi.next().unwrap();
         }
         Ok(())
     }

@@ -1,5 +1,5 @@
 use clap::Parser;
-use fnvcli::file_reader::file_reader;
+use fnvcli::file_reader::file_reader::{self, FnvReadError};
 
 #[derive(Parser, Debug)]
 struct Cli {
@@ -7,6 +7,8 @@ struct Cli {
     path: std::path::PathBuf,
 }
 
-fn main() {
-    println!("{}", file_reader::get_point_count(&vec![0x02, 0x00, 0x00, 0x00]));
+fn main() -> Result<(), FnvReadError> {
+    let f = std::fs::read("oh god.fnv").unwrap();
+    file_reader::read_fnv_file(&f)?;
+    Ok(())
 }
