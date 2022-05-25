@@ -10,10 +10,12 @@ pub mod file_reader {
 
     #[derive(Debug)]
     pub enum FnvReadErrorKind {
-        /// file size too small to process
+        /// File size too small to process
         FileTooSmall,
-        /// invalid curve type in file
+        /// Invalid curve type in file
         InvalidCurveType(u8),
+        /// Assertion fail
+        AssertionError,
     }
 
     impl fmt::Display for FnvReadError {
@@ -37,8 +39,10 @@ pub mod file_reader {
             });
         }
         let mut file_iter = _file.iter();
-
         let curve_type = curve_type(file_iter.next().unwrap())?;
+        for _ in 0..=3 {
+            assert_zero(file_iter.next().unwrap())?;
+        }
         
         Ok(()) // should be removed
     }
@@ -59,13 +63,21 @@ pub mod file_reader {
     // https://reverseengineering.stackexchange.com/questions/30363/floating-point-number-mangled-in-a-proprietary-file/30364#30364
     pub fn read_fnv_float(bytes: u32) -> f32 {
         const FNV_FLOAT_MASK: u32 = 0x7000000;
+        let f = bytes ^ FNV_FLOAT_MASK;
+        let f = swaplow3(f);
+        let f = ror32(f, -3);
+        f32::from_bits(f)
+    }
+    // for writing floats:
+    pub fn _write_fnv_float(bytes: u32) -> f32 {
+        const FNV_FLOAT_MASK: u32 = 0x7000000;
         let f = ror32(bytes, 3);
         let f = swaplow3(f);
         let f = f ^ FNV_FLOAT_MASK;
         f32::from_bits(f)
     }
 
-    fn ror32(x: u32, n: u32) -> u32 {
+    fn ror32(x: u32, n: i32) -> u32 {
         let n = n & 31;
         let low = x >> n;
         let high = (x << (32 - n)) & 0xFFFFFFFF;
@@ -78,6 +90,13 @@ pub mod file_reader {
         let x2 = (x >> 16) & 0xFF;
         let x3 = (x >> 24) & 0xFF;
         (x3<<24) | (x0<<16) | (x1<<8) | x2
+    }
+
+    fn assert_zero(x: &u8) -> Result<(), FnvReadError>{
+        match x {
+            0 => Err(FnvReadError{kind: FnvReadErrorKind::AssertionError}),
+            _ => Ok(()),
+        }
     }
 
 
