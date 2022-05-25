@@ -8,5 +8,5 @@ struct Cli {
 }
 
 fn main() {
-    println!("{}", file_reader::read_fnv_float(0x00B571CF));
+    println!("{}", file_reader::get_point_count(&vec![0x02, 0x00, 0x00, 0x00]));
 }
