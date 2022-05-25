@@ -10,10 +10,12 @@ pub mod file_reader {
 
     #[derive(Debug)]
     pub enum FnvReadErrorKind {
-        /// file size too small to process
+        /// File size too small to process
         FileTooSmall,
-        /// invalid curve type in file
+        /// Invalid curve type in file
         InvalidCurveType(u8),
+        /// Assertion fail
+        AssertionError,
     }
 
     impl fmt::Display for FnvReadError {
@@ -37,8 +39,10 @@ pub mod file_reader {
             });
         }
         let mut file_iter = _file.iter();
-
         let curve_type = curve_type(file_iter.next().unwrap())?;
+        for _ in 0..=3 {
+            assert_zero(file_iter.next().unwrap())?;
+        }
         
         Ok(()) // should be removed
     }
@@ -86,6 +90,13 @@ pub mod file_reader {
         let x2 = (x >> 16) & 0xFF;
         let x3 = (x >> 24) & 0xFF;
         (x3<<24) | (x0<<16) | (x1<<8) | x2
+    }
+
+    fn assert_zero(x: &u8) -> Result<(), FnvReadError>{
+        match x {
+            0 => Err(FnvReadError{kind: FnvReadErrorKind::AssertionError}),
+            _ => Ok(()),
+        }
     }
 
 
