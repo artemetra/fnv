@@ -1,5 +1,5 @@
 use clap::Parser;
-use fnvcli::file_reader::file_reader::{self, FnvReadError};
+use fnvcli::file_reader::{self, FnvReadError};
 
 #[derive(Parser, Debug)]
 struct Cli {
