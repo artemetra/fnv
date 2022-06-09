@@ -1,12 +1,7 @@
+#![allow(dead_code)]
 use crate::curve::CurveType;
-use std::convert::TryInto;
-use std::error::Error;
-use std::fmt;
-use std::slice::Iter;
-use nom::{
-    bytes::complete::tag,
-    IResult,
-};
+use nom::{bytes::complete::tag, IResult};
+use std::{convert::TryInto, error::Error, fmt, slice::Iter};
 const FNV_FLOAT_MASK: u32 = 0x7000000;
 #[derive(Debug)]
 pub struct FnvReadError {
@@ -72,9 +67,9 @@ pub fn read_fnv_file(_file: &Vec<u8>) -> Result<(), FnvReadError> {
         *fi.next().unwrap(),
         *fi.next().unwrap(),
         *fi.next().unwrap(),
-        ]);
+    ]);
     skip_n_bytes(&mut fi, 11)?;
-    
+
     Ok(()) // should be removed
 }
 

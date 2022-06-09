@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+use std::rc::Weak;
+
 use crate::curve::CurveTrait;
 pub enum PointMode {
     SingleCurve = 0x00,
@@ -22,25 +25,28 @@ pub enum ArpMode {
     Next = 0x03,
 }
 
-pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
-where
-    C: CurveTrait,
-{
-    // not implemented
-    0 as f32
+// pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
+// where
+//     C: CurveTrait,
+// {
+//     // not implemented
+//     0 as f32
+// }
+
+pub trait PointTrait {
+    fn absolute_x(&self) -> f32;
+    fn parent_curve(&self) -> Weak<dyn CurveTrait>;
 }
 
-pub trait PointTrait {}
-
 pub struct Point {
-    x: f32, // absolute value
+    x_offset: f32, // offset value
     y: f32,
     tension: f32,
     mode: PointMode,
 }
 
 pub struct EnvPoint {
-    x: f32, // absolute value
+    x_offset: f32, // offset value
     y: f32,
     tension: f32,
     mode: PointMode,
