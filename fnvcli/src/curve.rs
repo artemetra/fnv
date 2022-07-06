@@ -2,9 +2,8 @@
 
 use crate::point::{EnvPoint, Point};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CurveType {
-    None,
     Envelope = 0x01,
     Lfo = 0x02,
     Graph = 0x03,
@@ -22,8 +21,8 @@ impl EnvFlags {
     fn new(tempo: bool, global: bool) -> EnvFlags {
         EnvFlags { tempo, global }
     }
+    //                               should i just use Option<>?
     fn from_byte(byte: u8) -> Result<EnvFlags, InvalidEnvFlagByte> {
-        // should i just use Option<>?
         match byte {
             0 => Ok(EnvFlags {
                 tempo: false,
@@ -43,6 +42,9 @@ impl EnvFlags {
             }),
             n @ _ => Err(InvalidEnvFlagByte(n)),
         }
+    }
+    fn into_byte(&self) -> u8 {
+        ((self.global as u8) << 1) | (self.tempo as u8)
     }
 }
 pub struct LfoFlags {
@@ -152,21 +154,45 @@ impl CurveTrait for GraphCurve {
     fn flags(&self) -> Option<EnvFlags> {
         None
     }
+    fn minimum_point_count() -> u8
+    where
+        Self: Sized,
+    {
+        2
+    }
 }
 
 pub struct MapCurve {
     points_: Vec<Point>,
 }
 
+pub struct EnvADSR {
+    attack: f32,
+    decay: f32,
+    sustain: f32,
+    release: f32,
+}
+
 pub struct EnvCurve {
     points_: Vec<EnvPoint>,
     on: bool,
     flags_: EnvFlags,
-    adsr: EnvADSRIndices,
+    adsr_indices: EnvADSRIndices,
 }
+
+// TODO: fix naming
+pub struct LfoShape {
+    speed: f32,
+    tension: f32,
+    skew: f32,
+    pulsewidth: f32,
+}
+
 pub struct LfoCurve {
     points_: Vec<EnvPoint>,
     on: bool,
     flags_: EnvFlags,
-    adsr: LfoADSRIndices,
+    adsr_indices: LfoADSRIndices,
+    shape: LfoShape,
+    phase: f32,
 }

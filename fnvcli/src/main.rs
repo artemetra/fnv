@@ -8,7 +8,6 @@ struct Cli {
 }
 
 fn main() -> Result<(), FnvReadError> {
-    let f = std::fs::read("oh god.fnv").unwrap();
-    file_reader::read_fnv_file(&f)?;
+    // println!("{:?}", file_reader::parser(&[0x00, 0xFF, 0xAA]));
     Ok(())
 }

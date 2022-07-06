@@ -1,8 +1,21 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 use crate::curve::CurveType;
-use nom::{bytes::complete::tag, IResult};
-use std::{convert::TryInto, error::Error, fmt, slice::Iter};
+use anyhow::Result;
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take},
+    combinator::{map, rest_len},
+    error::{ErrorKind, ParseError, VerboseError},
+    multi::{count, length_data, length_value},
+    number::complete::{le_f32, le_u32, le_u8},
+    sequence::{preceded, tuple},
+    IResult, ToUsize,
+};
+use std::{error::Error, fmt, slice::Iter};
+
 const FNV_FLOAT_MASK: u32 = 0x7000000;
+const MINIMUM_FILESIZE: u32 = 56;
+
 #[derive(Debug)]
 pub struct FnvReadError {
     pub kind: FnvReadErrorKind,
@@ -13,14 +26,14 @@ pub enum FnvReadErrorKind {
     /// File size too small to process
     FileTooSmall,
     /// Invalid curve type in file
-    InvalidCurveType(u8),
+    InvalidCurveType(u32),
     /// Assertion fail
     AssertionError,
     /// there are 4 known formats for structuring an
     /// fnv file. it seems like it is only possible to
     /// create only one of them by the user, being `03`
     /// so i haven't figure out how to generate/read other
-    /// three (`00`, `01`, `02`)
+    /// three (`00`, `01`, `02`) yet.
     UnsupportedFormat,
 }
 
@@ -37,52 +50,44 @@ impl fmt::Display for FnvReadErrorKind {
 
 impl Error for FnvReadError {}
 
-// #[macro_export]
-// macro_rules! assert_byte_value {
-//     ($value:expr, $count:literal, $eq:literal) => {
-//         for _ in 0..=$count {
-//             match $value {
-//                 $eq => Err(FnvReadError{kind: FnvReadErrorKind::AssertionError}),
-//                 _ => Ok(()),
-//             };
-//         }
-//     };
-// }
-
-pub fn read_fnv_file(_file: &Vec<u8>) -> Result<(), FnvReadError> {
-    // smallest size i've found
-    if _file.len() < 56 {
-        return Err(FnvReadError {
-            kind: FnvReadErrorKind::FileTooSmall,
-        });
-    }
-    let mut fi = _file.iter();
-
-    let curve_type = curve_type(fi.next().unwrap())?;
-    skip_n_bytes(&mut fi, 3)?;
-    assert_parse_type(fi.next().unwrap())?;
-    skip_n_bytes(&mut fi, 3)?;
-    let point_count: u32 = get_point_count(&vec![
-        *fi.next().unwrap(),
-        *fi.next().unwrap(),
-        *fi.next().unwrap(),
-        *fi.next().unwrap(),
-    ]);
-    skip_n_bytes(&mut fi, 11)?;
-
-    Ok(()) // should be removed
+fn check_filesize(file: &[u8]) -> IResult<&[u8], &[u8]> {
+    take(MINIMUM_FILESIZE)(file)
 }
 
-pub fn curve_type(byte: &u8) -> Result<CurveType, FnvReadError> {
-    match byte {
-        1 => Ok(CurveType::Envelope),
-        2 => Ok(CurveType::Lfo),
-        3 => Ok(CurveType::Graph),
-        7 => Ok(CurveType::Map),
-        n @ _ => Err(FnvReadError {
-            kind: FnvReadErrorKind::InvalidCurveType(*n),
-        }),
-    }
+pub fn read_fnv_file(bytes: &'static [u8]) -> Result<()> {
+    check_filesize(bytes)?;
+    // let parsed_file = tuple((
+    //     le_u32,
+    //     le_u32,
+    // ));
+
+    Ok(())
+}
+
+// pub fn curve_type(byte: &u32) -> Result<CurveType, FnvReadError> {
+//     match byte {
+//         1 => Ok(CurveType::Envelope),
+//         2 => Ok(CurveType::Lfo),
+//         3 => Ok(CurveType::Graph),
+//         7 => Ok(CurveType::Map),
+//         n @ _ => Err(FnvReadError {
+//             kind: FnvReadErrorKind::InvalidCurveType(*n),
+//         }),
+//     }
+// }
+
+fn curve_type(bytes: &[u8; 4]) -> IResult<&[u8], &[u8]> {
+    alt((
+        tag(b"\x01\x00\x00\x00"),
+        tag(b"\x02\x00\x00\x00"),
+        tag(b"\x03\x00\x00\x00"),
+        tag(b"\x07\x00\x00\x00"),
+    ))(bytes)
+}
+
+// TODO: rename this
+fn assert_parse_type(x: &[u8; 4]) -> IResult<&[u8], &[u8]> {
+    tag(b"\x03\x00\x00\x00")(x)
 }
 
 // huge thanks to this:
@@ -90,7 +95,6 @@ pub fn curve_type(byte: &u8) -> Result<CurveType, FnvReadError> {
 pub fn read_fnv_float(bytes: u32) -> f32 {
     let f = bytes ^ FNV_FLOAT_MASK;
     let f = swaplow3(f);
-    //let f = ror32(f, -3);
     let f = f.rotate_left(3);
     f32::from_bits(f)
 }
@@ -115,34 +119,4 @@ fn swaplow3(x: u32) -> u32 {
     let x2 = (x >> 16) & 0xFF;
     let x3 = (x >> 24) & 0xFF;
     (x3 << 24) | (x0 << 16) | (x1 << 8) | x2
-}
-
-fn assert_zero(x: &u8) -> Result<(), FnvReadError> {
-    match x {
-        0 => Err(FnvReadError {
-            kind: FnvReadErrorKind::AssertionError,
-        }),
-        _ => Ok(()),
-    }
-}
-
-fn assert_parse_type(x: &u8) -> Result<(), FnvReadError> {
-    match x {
-        3 => Ok(()),
-        _ => Err(FnvReadError {
-            kind: FnvReadErrorKind::UnsupportedFormat,
-        }),
-    }
-}
-
-fn skip_n_bytes(fi: &mut Iter<u8>, n: u8) -> Result<(), FnvReadError> {
-    println!("skipping {} bytes", n);
-    for _ in 0..n {
-        fi.next().unwrap();
-    }
-    Ok(())
-}
-
-pub fn get_point_count(v: &Vec<u8>) -> u32 {
-    u32::from_le_bytes(v[..].try_into().unwrap())
 }
