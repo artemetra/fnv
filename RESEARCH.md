@@ -19,7 +19,7 @@ Apart from being just the examples, these are actually the only types of curves 
 * Envelope
 * LFO Envelope
 * Graph
-* **NEW!** Map - quite rare, only exists in a handful of standard fl files, and i'm still not sure how it differs compared to Graph (basically has the exact same features and functionality but the header number is 07!)
+* EQ (Old name: Map) - quite rare, so far only found in Edison's EQ and Denoise tools. Mostly identical to Graph. 
 * Automation clips.*
 
   ##### \* - automation clips can't actually be saved in fnv files directly, but their _states_ can be copied and pasted inside FL. More on   that later
@@ -165,3 +165,10 @@ where N - number of points, F - file size in bytes
 | 14 | `EC` |  2 |
 | 15 | `EE` |  2 |
 | 16 | `F0` |  1 |
+
+## EQ (Old name: Map)
+First byte in header: `07`
+
+Minimum number of points: 2
+
+Basically identical to Graph, but (apparently) it inherently supports shifting the EQ between Log and Linear scale. Still unsure which one of them is actually saved to the file and how the point offsets are represented.
