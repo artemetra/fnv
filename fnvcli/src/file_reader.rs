@@ -1,6 +1,7 @@
 // this will be removed... some day
 #![allow(dead_code, unused_imports)]
-use crate::curve::CurveType;
+use std::convert::TryInto;
+use crate::curve::{CurveType, CurveTrait, GraphCurve};
 use anyhow::Result;
 use nom::{
     branch::alt,
@@ -9,7 +10,7 @@ use nom::{
     error::{ErrorKind, ParseError, VerboseError},
     multi::{count, length_data, length_value},
     number::complete::{le_f32, le_u32, le_u8},
-    sequence::{preceded, tuple},
+    sequence::{pair, preceded, tuple},
     IResult, ToUsize,
 };
 use std::{error::Error, fmt, slice::Iter};
@@ -27,7 +28,7 @@ pub enum FnvReadErrorKind {
     /// File size too small to process
     FileTooSmall,
     /// Invalid curve type in file
-    InvalidCurveType(u32),
+    InvalidCurveType(u8),
     /// Assertion fail
     AssertionError,
     /// there are 4 known formats for structuring an
@@ -62,10 +63,18 @@ fn check_filesize(file: &[u8]) -> IResult<&[u8], &[u8]> {
     take(MINIMUM_FILESIZE)(file)
 }
 
-pub fn read_fnv_file(bytes: &'static [u8]) -> Result<()> {
-    check_filesize(bytes)?;
-
-    Ok(())
+pub fn read_fnv_file(bytes: &'static [u8]) -> Result<impl CurveTrait> {
+    let curve_type = read_curve_type(bytes.try_into().unwrap())?;
+    let curve_type = match curve_type.0[0] {
+        1 => Ok(CurveType::Envelope),
+        2 => Ok(CurveType::Lfo),
+        3 => Ok(CurveType::Graph),
+        7 => Ok(CurveType::Map),
+        n @ _ => Err(FnvReadError {
+            kind: FnvReadErrorKind::InvalidCurveType(n),
+        }),
+    }?;
+    Ok(GraphCurve::default())
 }
 
 // pub fn curve_type(byte: &u32) -> Result<CurveType, FnvReadError> {
@@ -84,13 +93,11 @@ fn read_graph_point(bytes: &[u8; 24]) -> IResult<&[u8], &[u8]> {
     take(24_u32)(bytes)
 }
 
-fn read_curve_type(bytes: &[u8; 4]) -> IResult<&[u8], &[u8]> {
-    alt((
-        tag(b"\x01\x00\x00\x00"),
-        tag(b"\x02\x00\x00\x00"),
-        tag(b"\x03\x00\x00\x00"),
-        tag(b"\x07\x00\x00\x00"),
-    ))(bytes)
+fn read_curve_type(bytes: &[u8; 4]) -> IResult<&[u8], (&[u8], &[u8])> {
+    pair(
+        alt((tag(b"\x01"), tag(b"\x02"), tag(b"\x03"), tag(b"\x07"))),
+        tag(b"\x00\x00\x00"),
+    )(bytes)
 }
 
 // TODO: rename this
