@@ -1,3 +1,4 @@
+// this will be removed... some day
 #![allow(dead_code, unused_imports)]
 use crate::curve::CurveType;
 use anyhow::Result;
@@ -44,7 +45,14 @@ impl fmt::Display for FnvReadError {
 }
 impl fmt::Display for FnvReadErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.to_string())
+        //                  TODO: fix this
+        let s = match self {
+            Self::FileTooSmall => "FileTooSmall",
+            Self::InvalidCurveType(_) => "InvalidCurveType",
+            Self::AssertionError => "AssertionError",
+            Self::UnsupportedFormat => "UnsupportedFormat",
+        };
+        write!(f, "{:?}", s)
     }
 }
 
@@ -56,10 +64,6 @@ fn check_filesize(file: &[u8]) -> IResult<&[u8], &[u8]> {
 
 pub fn read_fnv_file(bytes: &'static [u8]) -> Result<()> {
     check_filesize(bytes)?;
-    // let parsed_file = tuple((
-    //     le_u32,
-    //     le_u32,
-    // ));
 
     Ok(())
 }
@@ -76,7 +80,11 @@ pub fn read_fnv_file(bytes: &'static [u8]) -> Result<()> {
 //     }
 // }
 
-fn curve_type(bytes: &[u8; 4]) -> IResult<&[u8], &[u8]> {
+fn read_graph_point(bytes: &[u8; 24]) -> IResult<&[u8], &[u8]> {
+    take(24_u32)(bytes)
+}
+
+fn read_curve_type(bytes: &[u8; 4]) -> IResult<&[u8], &[u8]> {
     alt((
         tag(b"\x01\x00\x00\x00"),
         tag(b"\x02\x00\x00\x00"),
@@ -99,20 +107,21 @@ pub fn read_fnv_float(bytes: u32) -> f32 {
     f32::from_bits(f)
 }
 // for writing floats:
-pub fn _write_fnv_float(bytes: u32) -> f32 {
-    let f = bytes.rotate_right(3);
+pub fn write_fnv_float(fl: f32) -> u32 {
+    let f = u32::from_ne_bytes(fl.to_ne_bytes());
+    let f = f.rotate_right(3);
     let f = swaplow3(f);
-    let f = f ^ FNV_FLOAT_MASK;
-    f32::from_bits(f)
+    f ^ FNV_FLOAT_MASK
 }
 
-fn ror32(x: u32, n: i32) -> u32 {
-    let n = n & 31;
-    let low = x >> n;
-    let high = (x << (32 - n)) & 0xFFFFFFFF;
-    high | low
-}
+// fn ror32(x: u32, n: i32) -> u32 {
+//     let n = n & 31;
+//     let low = x >> n;
+//     let high = (x << (32 - n)) & 0xFFFFFFFF;
+//     high | low
+// }
 
+/// Reverses three last bytes.
 fn swaplow3(x: u32) -> u32 {
     let x0 = x & 0xFF;
     let x1 = (x >> 8) & 0xFF;
