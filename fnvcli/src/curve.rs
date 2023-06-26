@@ -40,10 +40,10 @@ impl EnvFlags {
                 tempo: true,
                 global: true,
             }),
-            n @ _ => Err(InvalidEnvFlagByte(n)),
+            n => Err(InvalidEnvFlagByte(n)),
         }
     }
-    fn into_byte(&self) -> u8 {
+    fn as_byte(&self) -> u8 {
         ((self.global as u8) << 1) | (self.tempo as u8)
     }
 }
@@ -76,10 +76,10 @@ impl LfoFlags {
                 frozen: true,
                 bipolar: true,
             }),
-            n @ _ => Err(InvalidLfoFlagByte(n)),
+            n => Err(InvalidLfoFlagByte(n)),
         }
     }
-    fn to_byte(&self) -> u8 {
+    fn as_byte(&self) -> u8 {
         match self {
             LfoFlags {
                 frozen: false,
@@ -133,7 +133,7 @@ pub trait CurveTrait {
     fn adsr_indices(&self) -> Option<Box<dyn ADSRIndices>>;
     fn flags(&self) -> Option<EnvFlags>;
 }
-
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct GraphCurve {
     points_: Vec<Point>,
 }
@@ -162,7 +162,7 @@ impl CurveTrait for GraphCurve {
     }
 }
 
-pub struct MapCurve {
+pub struct EQCurve {
     points_: Vec<Point>,
 }
 
@@ -177,6 +177,7 @@ pub struct EnvCurve {
     points_: Vec<EnvPoint>,
     on: bool,
     flags_: EnvFlags,
+    adsr: EnvADSR,
     adsr_indices: EnvADSRIndices,
 }
 
