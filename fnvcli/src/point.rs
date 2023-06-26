@@ -1,7 +1,9 @@
 #![allow(dead_code)]
-use std::rc::Weak;
+use std::{rc::Weak, default};
 
 use crate::curve::CurveTrait;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PointMode {
     SingleCurve = 0x00,
     DoubleCurve = 0x01,
@@ -18,6 +20,13 @@ pub enum PointMode {
     DoubleCurve3 = 0x0C,
 }
 
+impl Default for PointMode {
+    fn default() -> Self {
+        PointMode::SingleCurve
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ArpMode {
     None = 0x00,
     Prev = 0x01,
@@ -37,7 +46,7 @@ pub trait PointTrait {
     fn absolute_x(&self) -> f32;
     fn parent_curve(&self) -> Weak<dyn CurveTrait>;
 }
-
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct Point {
     x_offset: f32, // offset value
     y: f32,
