@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 /// How the connection to the *left* of a point (previous point -> this one) is drawn.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

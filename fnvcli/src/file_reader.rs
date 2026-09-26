@@ -18,7 +18,6 @@ use nom::{
     number::complete::{le_f32, le_f64, le_i32, le_i8, le_u32, le_u8},
     IResult, Parser,
 };
-use std::convert::TryFrom;
 use std::{error::Error, fmt};
 
 #[derive(Debug, Clone, PartialEq)]

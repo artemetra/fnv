@@ -1,6 +1,5 @@
 use crate::point::Point;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
 
 pub const HEADER_LEN: usize = 12;
 
