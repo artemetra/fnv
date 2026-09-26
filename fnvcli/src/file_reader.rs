@@ -219,11 +219,17 @@ fn common_footer(input: &[u8]) -> PResult<'_, CommonFooter> {
 }
 
 fn env_params(input: &[u8]) -> PResult<'_, EnvParams> {
-    let (input, p) = count(le_u32, 4)(input)?;
+    let (input, attack) = le_i32(input)?;
+    let (input, decay) = le_i32(input)?;
+    let (input, sustain) = le_i32(input)?;
+    let (input, release) = le_i32(input)?;
     Ok((
         input,
         EnvParams {
-            params: [p[0], p[1], p[2], p[3]],
+            attack,
+            decay,
+            sustain,
+            release,
         },
     ))
 }
@@ -311,7 +317,10 @@ mod tests {
         assert_eq!(
             f.params,
             FooterParams::Envelope(EnvParams {
-                params: [128, 128, 0, 128]
+                attack: 128,
+                decay: 128,
+                sustain: 0,
+                release: 128,
             })
         );
     }

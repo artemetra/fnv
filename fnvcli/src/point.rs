@@ -98,7 +98,8 @@ pub struct Point {
     pub arp_mode: ArpMode,
     /// always 0 in files saved by FL
     pub reserved: u8,
-    /// Not fully understood. 1 for positive tension, -1 for negative,
-    /// and 2 (usually) or 0 when tension is 0.
+    /// 1 for positive tension, -1 for negative, 2 (sometimes 0) for zero,
+    /// and always 0 on the first point. FL ignores it on load and recomputes
+    /// it on save (tested with graphs in Single curve mode).
     pub tension_sign: i8,
 }

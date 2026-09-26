@@ -17,9 +17,10 @@ impl Fnv {
         match &self.params {
             FooterParams::None => {}
             FooterParams::Envelope(e) => {
-                for p in e.params {
-                    out.extend(p.to_le_bytes());
-                }
+                out.extend(e.attack.to_le_bytes());
+                out.extend(e.decay.to_le_bytes());
+                out.extend(e.sustain.to_le_bytes());
+                out.extend(e.release.to_le_bytes());
             }
             FooterParams::Lfo(l) => {
                 out.extend(l.speed.to_le_bytes());

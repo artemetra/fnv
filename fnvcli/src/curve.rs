@@ -74,11 +74,28 @@ impl CommonFooter {
     }
 }
 
-/// Extra 16 footer bytes of envelopes. Meaning not confirmed yet; they are
-/// almost always `[128, 128, 0, 128]` and are likely the ADSR knob values.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+/// Extra 16 footer bytes of envelopes: the ADSR knobs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EnvParams {
-    pub params: [u32; 4],
+    /// 0..=256, default 128
+    pub attack: i32,
+    /// 0..=256, default 128
+    pub decay: i32,
+    /// -128..=128, default 0 (knob centred)
+    pub sustain: i32,
+    /// 0..=256, default 128
+    pub release: i32,
+}
+
+impl Default for EnvParams {
+    fn default() -> Self {
+        EnvParams {
+            attack: 128,
+            decay: 128,
+            sustain: 0,
+            release: 128,
+        }
+    }
 }
 
 impl EnvParams {
