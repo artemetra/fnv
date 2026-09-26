@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: Command,
 }
 
@@ -14,13 +14,11 @@ struct Cli {
 enum Command {
     /// Parse a .fnv file and print it as JSON
     Show {
-        #[clap(parse(from_os_str))]
         path: PathBuf,
     },
     /// Parse every .fnv file under a directory, check that writing it back
     /// gives identical bytes, and print a summary
     Scan {
-        #[clap(parse(from_os_str))]
         dir: PathBuf,
     },
 }

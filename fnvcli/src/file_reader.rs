@@ -16,7 +16,7 @@ use nom::{
     error::{ErrorKind, ParseError},
     multi::count,
     number::complete::{le_f32, le_f64, le_i32, le_i8, le_u32, le_u8},
-    IResult,
+    IResult, Parser,
 };
 use std::convert::TryFrom;
 use std::{error::Error, fmt};
@@ -114,7 +114,7 @@ fn fnv(input: &[u8]) -> PResult<'_, Fnv> {
         Version::V1 => point_v1,
         Version::V2 | Version::V3 => point_v3,
     };
-    let (input, points) = count(point, point_count as usize)(input)?;
+    let (input, points) = count(point, point_count as usize).parse(input)?;
     let (input, footer) = common_footer(input)?;
     let (input, params) = match curve_type {
         CurveType::Envelope => {
