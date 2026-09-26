@@ -2,10 +2,55 @@ use crate::point::Point;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
-/// The only version seen in files saved by FL (u32 at offset 0x04).
-pub const FNV_VERSION: u32 = 3;
 pub const HEADER_LEN: usize = 12;
-pub const POINT_LEN: usize = 24;
+
+/// Format version (u32 at offset 0x04). Current FL writes `V3`, but most
+/// files shipped with FL are older. FL refuses anything newer than 3.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum Version {
+    /// 12-byte points: f32 x_offset, y, tension. No mode or arp mode.
+    V0 = 0,
+    /// 16-byte points: f32 x_offset, y, tension + mode, arp mode, 2 bytes.
+    V1 = 1,
+    /// 24-byte points like `V3`, but LFOs have no phase.
+    V2 = 2,
+    /// 24-byte points: f64 x_offset, y, f32 tension + mode, arp mode, 2 bytes.
+    V3 = 3,
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Version::V3
+    }
+}
+
+impl TryFrom<u32> for Version {
+    type Error = u32;
+    fn try_from(n: u32) -> Result<Self, u32> {
+        match n {
+            0 => Ok(Version::V0),
+            1 => Ok(Version::V1),
+            2 => Ok(Version::V2),
+            3 => Ok(Version::V3),
+            n => Err(n),
+        }
+    }
+}
+
+impl Version {
+    /// Size of one point record in bytes.
+    pub fn point_len(self) -> usize {
+        match self {
+            Version::V0 => 12,
+            Version::V1 => 16,
+            Version::V2 | Version::V3 => 24,
+        }
+    }
+    /// LFO footers only have a phase field from version 3 on.
+    pub fn has_lfo_phase(self) -> bool {
+        self >= Version::V3
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CurveType {
@@ -31,11 +76,12 @@ impl TryFrom<u32> for CurveType {
 
 impl CurveType {
     /// Length of the whole footer (common part + type-specific part) in bytes.
-    pub fn footer_len(self) -> usize {
+    pub fn footer_len(self, version: Version) -> usize {
         CommonFooter::LEN
             + match self {
                 CurveType::Envelope => EnvParams::LEN,
-                CurveType::Lfo => LfoParams::LEN,
+                CurveType::Lfo if version.has_lfo_phase() => LfoParams::LEN,
+                CurveType::Lfo => LfoParams::LEN - 4,
                 CurveType::Graph | CurveType::Map => 0,
             }
     }
@@ -64,7 +110,8 @@ impl CommonFooter {
     pub fn global(&self) -> bool {
         self.flags & 0b0010 != 0
     }
-    /// LFO only. The bit is set when the LFO is *uni*polar.
+    /// LFO only. The bit is inverted in the file: 
+    /// it is set when bipolar is off, i.e. when it is unipolar
     pub fn bipolar(&self) -> bool {
         self.flags & 0b0100 == 0
     }
@@ -102,18 +149,19 @@ impl EnvParams {
     pub const LEN: usize = 16;
 }
 
-/// Extra 20 footer bytes of LFOs.
+/// Extra 20 footer bytes of LFOs (16 before version 3, which has no phase).
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct LfoParams {
     /// knob 0.0..=1.0 maps linearly to 512..=65536
     pub speed: u32,
     /// -128..=128
     pub tension: i32,
-    /// assumed from knob order, never non-zero in the test corpus
+    /// -128..=128
     pub skew: i32,
-    /// assumed from knob order, never non-zero in the test corpus
+    /// -128..=128
     pub pulse_width: i32,
-    /// raw value, scale unknown
+    /// raw value, probably the full u32 range = one cycle (not measured yet).
+    /// Only stored from version 3 on; 0 when read from older files.
     pub phase: u32,
 }
 
@@ -132,6 +180,8 @@ pub enum FooterParams {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Fnv {
     pub curve_type: CurveType,
+    /// Format version the file was read from, and the one `to_bytes` writes.
+    pub version: Version,
     pub points: Vec<Point>,
     pub footer: CommonFooter,
     /// Must match `curve_type`: `Envelope` for envelopes, `Lfo` for LFOs, `None` otherwise.

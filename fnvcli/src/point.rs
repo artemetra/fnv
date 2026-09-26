@@ -76,7 +76,7 @@ impl TryFrom<u8> for ArpMode {
     }
 }
 
-/// A single 24-byte point record:
+/// A single point record. In versions 2 and 3 it is 24 bytes:
 ///
 /// | offset | type | field      |
 /// |--------|------|------------|
@@ -87,6 +87,10 @@ impl TryFrom<u8> for ArpMode {
 /// | 0x15   | u8   | arp_mode   |
 /// | 0x16   | u8   | reserved   |
 /// | 0x17   | i8   | tension_sign |
+///
+/// Version 1 (16 bytes) stores x_offset and y as f32, followed by the same
+/// tension and 4 bytes. Version 0 (12 bytes) is only the three f32 values;
+/// the other fields are left at their defaults when reading it.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Point {
     /// x distance from the previous point (not an absolute coordinate)
@@ -100,6 +104,7 @@ pub struct Point {
     pub reserved: u8,
     /// 1 for positive tension, -1 for negative, 2 (sometimes 0) for zero,
     /// and always 0 on the first point. FL ignores it on load and recomputes
-    /// it on save (tested with graphs in Single curve mode).
+    /// it on save (tested with every point mode in every curve type).
+    /// Always 0 in version 1 files, and often 0 in version 2 files.
     pub tension_sign: i8,
 }

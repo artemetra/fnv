@@ -2,14 +2,14 @@
 //!
 //! Layout (all little endian):
 //! ```text
-//! header   u32 curve type | u32 version (3) | u32 point count
-//! points   point count * 24 bytes, see `Point`
+//! header   u32 curve type | u32 version (0-3) | u32 point count
+//! points   point count * 12 / 16 / 24 bytes (version 0 / 1 / 2-3), see `Point`
 //! footer   20 bytes common to all types (`CommonFooter`)
-//!          + 16 bytes for envelopes (`EnvParams`) / 20 bytes for LFOs (`LfoParams`)
+//!          + 16 bytes for envelopes (`EnvParams`)
+//!          + 20 bytes for LFOs (`LfoParams`), 16 before version 3
 //! ```
 use crate::curve::{
-    CommonFooter, CurveType, EnvParams, Fnv, FooterParams, LfoParams, FNV_VERSION, HEADER_LEN,
-    POINT_LEN,
+    CommonFooter, CurveType, EnvParams, Fnv, FooterParams, LfoParams, Version, HEADER_LEN,
 };
 use crate::point::{ArpMode, Point, PointMode};
 use nom::{
@@ -24,9 +24,9 @@ use std::{error::Error, fmt};
 #[derive(Debug, Clone, PartialEq)]
 pub enum FnvReadErrorKind {
     InvalidCurveType(u32),
-    /// Only version 3 has been seen in files saved by FL
+    /// Newer than version 3 (FL refuses these too)
     UnsupportedVersion(u32),
-    /// File size doesn't match `12 + 24 * point_count + footer length`
+    /// File size doesn't match `12 + point length * point_count + footer length`
     SizeMismatch { expected: u64, found: usize },
     InvalidPointMode(u8),
     InvalidArpMode(u8),
@@ -92,15 +92,13 @@ pub fn read_fnv(bytes: &[u8]) -> Result<Fnv, FnvReadError> {
 fn fnv(input: &[u8]) -> PResult<'_, Fnv> {
     let whole = input;
     let (input, curve_type) = curve_type(input)?;
-    let (input, version) = le_u32(input)?;
-    if version != FNV_VERSION {
-        return fail(&whole[4..], FnvReadErrorKind::UnsupportedVersion(version));
-    }
+    let (input, version) = version(input)?;
     let (input, point_count) = le_u32(input)?;
 
     // checking the size up front also stops a bogus point count from being used
-    let expected =
-        HEADER_LEN as u64 + POINT_LEN as u64 * point_count as u64 + curve_type.footer_len() as u64;
+    let expected = HEADER_LEN as u64
+        + version.point_len() as u64 * point_count as u64
+        + curve_type.footer_len(version) as u64;
     if expected != whole.len() as u64 {
         return fail(
             &whole[8..],
@@ -111,6 +109,11 @@ fn fnv(input: &[u8]) -> PResult<'_, Fnv> {
         );
     }
 
+    let point = match version {
+        Version::V0 => point_v0,
+        Version::V1 => point_v1,
+        Version::V2 | Version::V3 => point_v3,
+    };
     let (input, points) = count(point, point_count as usize)(input)?;
     let (input, footer) = common_footer(input)?;
     let (input, params) = match curve_type {
@@ -119,7 +122,7 @@ fn fnv(input: &[u8]) -> PResult<'_, Fnv> {
             (i, FooterParams::Envelope(p))
         }
         CurveType::Lfo => {
-            let (i, p) = lfo_params(input)?;
+            let (i, p) = lfo_params(input, version)?;
             (i, FooterParams::Lfo(p))
         }
         CurveType::Graph | CurveType::Map => (input, FooterParams::None),
@@ -128,6 +131,7 @@ fn fnv(input: &[u8]) -> PResult<'_, Fnv> {
         input,
         Fnv {
             curve_type,
+            version,
             points,
             footer,
             params,
@@ -143,9 +147,46 @@ fn curve_type(input: &[u8]) -> PResult<'_, CurveType> {
     }
 }
 
-fn point(input: &[u8]) -> PResult<'_, Point> {
+fn version(input: &[u8]) -> PResult<'_, Version> {
+    let (rest, n) = le_u32(input)?;
+    match Version::try_from(n) {
+        Ok(v) => Ok((rest, v)),
+        Err(n) => fail(input, FnvReadErrorKind::UnsupportedVersion(n)),
+    }
+}
+
+/// Version 0: 12 bytes, three f32 and nothing else.
+fn point_v0(input: &[u8]) -> PResult<'_, Point> {
+    let (input, x_offset) = le_f32(input)?;
+    let (input, y) = le_f32(input)?;
+    let (input, tension) = le_f32(input)?;
+    Ok((
+        input,
+        Point {
+            x_offset: x_offset as f64,
+            y: y as f64,
+            tension,
+            ..Point::default()
+        },
+    ))
+}
+
+/// Version 1: 16 bytes, f32 coordinates.
+fn point_v1(input: &[u8]) -> PResult<'_, Point> {
+    let (input, x_offset) = le_f32(input)?;
+    let (input, y) = le_f32(input)?;
+    point_tail(input, x_offset as f64, y as f64)
+}
+
+/// Versions 2 and 3: 24 bytes, f64 coordinates.
+fn point_v3(input: &[u8]) -> PResult<'_, Point> {
     let (input, x_offset) = le_f64(input)?;
     let (input, y) = le_f64(input)?;
+    point_tail(input, x_offset, y)
+}
+
+/// The 8 bytes after the coordinates, shared by versions 1-3.
+fn point_tail(input: &[u8], x_offset: f64, y: f64) -> PResult<'_, Point> {
     let (input, tension) = le_f32(input)?;
     let (input, mode) = point_mode(input)?;
     let (input, arp_mode) = arp_mode(input)?;
@@ -234,12 +275,16 @@ fn env_params(input: &[u8]) -> PResult<'_, EnvParams> {
     ))
 }
 
-fn lfo_params(input: &[u8]) -> PResult<'_, LfoParams> {
+fn lfo_params(input: &[u8], version: Version) -> PResult<'_, LfoParams> {
     let (input, speed) = le_u32(input)?;
     let (input, tension) = le_i32(input)?;
     let (input, skew) = le_i32(input)?;
     let (input, pulse_width) = le_i32(input)?;
-    let (input, phase) = le_u32(input)?;
+    let (input, phase) = if version.has_lfo_phase() {
+        le_u32(input)?
+    } else {
+        (input, 0)
+    };
     Ok((
         input,
         LfoParams {
@@ -286,6 +331,55 @@ mod tests {
         00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 e0 3f 00 00 00 00 00 00 00 02
         00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff 02 00 00 00
         40 9c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00";
+
+    /// version 0, shipped with FL: "Data/Patches/Envelopes/Maps/Default.fnv" (a graph)
+    const GRAPH_V0: &str = "03 00 00 00 00 00 00 00 02 00 00 00
+        00 00 00 00 00 00 00 00 00 00 00 80
+        00 00 80 3f 00 00 80 3f 00 00 00 00
+        00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff";
+
+    /// version 0, shipped with FL: Harmor "Data/LFO/Default.fnv"
+    const LFO_V0: &str = "02 00 00 00 00 00 00 00 04 00 00 00
+        00 00 00 00 00 00 00 3f 00 00 00 00
+        00 00 80 3f 00 00 00 3f 00 00 00 00
+        00 00 80 3e 00 00 80 3f 00 00 00 00
+        00 00 80 3f 00 00 00 3f 00 00 00 00
+        00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff 02 00 00 00
+        40 9c 00 00 00 00 00 00 00 00 00 00 00 00 00 00";
+
+    /// version 2, shipped with FL: Harmor "Data/LFO/Pitch vibrato.fnv" (no phase)
+    const LFO_V2: &str = "02 00 00 00 02 00 00 00 01 00 00 00
+        00 00 00 00 00 00 00 00 00 00 00 a0 aa aa e0 3f 00 00 00 00 00 00 00 00
+        02 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+        95 d1 00 00 00 00 00 00 00 00 00 00 00 00 00 00";
+
+    /// version 1 (2019): "second dword testing/Arp - 1 1 2 3.fnv"
+    const ENV_V1: &str = "01 00 00 00 01 00 00 00 09 00 00 00
+        00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00
+        00 00 00 00 00 00 80 3f 00 00 00 00 00 00 00 00
+        00 00 00 3f 00 00 00 00 00 00 00 00 00 02 00 00
+        00 00 00 00 00 00 80 3f 00 00 00 00 00 00 00 00
+        00 00 00 3f 00 00 00 00 00 00 00 00 00 03 00 00
+        00 00 00 00 00 00 80 3f 00 00 00 00 00 00 00 00
+        00 00 00 3f 00 00 00 00 00 00 00 00 00 03 00 00
+        00 00 00 00 00 00 80 3f 00 00 00 00 00 00 00 00
+        00 00 00 3f 00 00 00 00 00 00 00 00 00 03 00 00
+        03 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00 08 00 00 00
+        80 00 00 00 40 00 00 00 00 00 00 00 80 00 00 00";
+
+    /// FL's version 3 resave of `ENV_V1`: "Arp - 1 1 2 3 - resave.fnv"
+    const ENV_V1_RESAVED: &str = "01 00 00 00 03 00 00 00 09 00 00 00
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 00 02
+        00 00 00 00 00 00 e0 3f 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 02
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 00 02
+        00 00 00 00 00 00 e0 3f 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 02
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 00 02
+        00 00 00 00 00 00 e0 3f 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 02
+        00 00 00 00 00 00 00 00 00 00 00 00 00 00 f0 3f 00 00 00 00 00 00 00 02
+        00 00 00 00 00 00 e0 3f 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 02
+        03 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00 08 00 00 00
+        80 00 00 00 40 00 00 00 00 00 00 00 80 00 00 00";
 
     #[test]
     fn graph() {
@@ -374,14 +468,111 @@ mod tests {
             }
         );
 
+        let mut b = hex(GRAPH_3);
+        b[4] = 4;
+        assert_eq!(
+            read_fnv(&b).unwrap_err(),
+            FnvReadError {
+                offset: 4,
+                kind: FnvReadErrorKind::UnsupportedVersion(4)
+            }
+        );
+
         assert!(read_fnv(&[]).is_err());
     }
 
     #[test]
     fn roundtrip() {
-        for h in [GRAPH_3, ENV_DEFAULT, LFO_DEFAULT] {
+        for h in [
+            GRAPH_3,
+            ENV_DEFAULT,
+            LFO_DEFAULT,
+            GRAPH_V0,
+            LFO_V0,
+            LFO_V2,
+            ENV_V1,
+            ENV_V1_RESAVED,
+        ] {
             let b = hex(h);
             assert_eq!(read_fnv(&b).unwrap().to_bytes(), b);
         }
+    }
+
+    #[test]
+    fn graph_v0() {
+        let f = read_fnv(&hex(GRAPH_V0)).unwrap();
+        assert_eq!(f.version, Version::V0);
+        assert_eq!(f.curve_type, CurveType::Graph);
+        assert_eq!(f.absolute_xs(), vec![0.0, 1.0]);
+        assert_eq!(f.points[1].y, 1.0);
+        // stored as -0.0; must survive the round trip
+        assert!(f.points[0].tension == 0.0 && f.points[0].tension.is_sign_negative());
+        assert_eq!(f.points[1].mode, PointMode::SingleCurve);
+    }
+
+    /// The version 0 LFO shipped with FL is the same curve as today's default LFO.
+    #[test]
+    fn lfo_v0_matches_default_lfo() {
+        let old = read_fnv(&hex(LFO_V0)).unwrap();
+        let new = read_fnv(&hex(LFO_DEFAULT)).unwrap();
+        assert_eq!(old.version, Version::V0);
+        let coords = |f: &Fnv| -> Vec<(f64, f64, f32)> {
+            f.points.iter().map(|p| (p.x_offset, p.y, p.tension)).collect()
+        };
+        assert_eq!(coords(&old), coords(&new));
+        assert_eq!(old.footer, new.footer);
+        assert_eq!(old.params, new.params);
+    }
+
+    #[test]
+    fn lfo_v2_has_no_phase() {
+        let f = read_fnv(&hex(LFO_V2)).unwrap();
+        assert_eq!(f.version, Version::V2);
+        assert_eq!(f.points.len(), 1);
+        assert_eq!(f.points[0].y, 0.5208333134651184);
+        assert!(f.footer.global());
+        assert_eq!(
+            f.params,
+            FooterParams::Lfo(LfoParams {
+                speed: 53653,
+                tension: 0,
+                skew: 0,
+                pulse_width: 0,
+                phase: 0,
+            })
+        );
+    }
+
+    /// FL converted the version 1 file to version 3 without changing the curve;
+    /// only the (then missing) tension sign byte was filled in.
+    #[test]
+    fn env_v1_matches_its_v3_resave() {
+        let old = read_fnv(&hex(ENV_V1)).unwrap();
+        let new = read_fnv(&hex(ENV_V1_RESAVED)).unwrap();
+        assert_eq!(old.version, Version::V1);
+        assert_eq!(new.version, Version::V3);
+        assert_eq!(old.points.len(), 9);
+        for (a, b) in old.points.iter().zip(&new.points) {
+            assert_eq!(
+                (a.x_offset, a.y, a.tension, a.mode, a.arp_mode),
+                (b.x_offset, b.y, b.tension, b.mode, b.arp_mode)
+            );
+        }
+        let arps: Vec<ArpMode> = old.points.iter().map(|p| p.arp_mode).collect();
+        assert_eq!(arps[..4], [ArpMode::Same, ArpMode::None, ArpMode::Same, ArpMode::None]);
+        assert_eq!(old.footer, new.footer);
+        assert_eq!(old.params, new.params);
+    }
+
+    /// Converting between versions keeps the curve (for values f32 can hold).
+    #[test]
+    fn convert_versions() {
+        let orig = read_fnv(&hex(ENV_V1)).unwrap();
+        let mut f = orig.clone();
+        f.version = Version::V3;
+        let mut v3 = read_fnv(&f.to_bytes()).unwrap();
+        assert_eq!(v3.points, orig.points);
+        v3.version = Version::V1;
+        assert_eq!(v3.to_bytes(), hex(ENV_V1));
     }
 }
