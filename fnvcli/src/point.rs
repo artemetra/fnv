@@ -1,9 +1,8 @@
-#![allow(dead_code)]
-use std::{rc::Weak, default};
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
-use crate::curve::CurveTrait;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// How the connection to the *left* of a point (previous point -> this one) is drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PointMode {
     SingleCurve = 0x00,
     DoubleCurve = 0x01,
@@ -26,7 +25,31 @@ impl Default for PointMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+impl TryFrom<u8> for PointMode {
+    type Error = u8;
+    fn try_from(byte: u8) -> Result<Self, u8> {
+        use PointMode::*;
+        Ok(match byte {
+            0x00 => SingleCurve,
+            0x01 => DoubleCurve,
+            0x02 => Hold,
+            0x03 => Stairs,
+            0x04 => SmoothStairs,
+            0x05 => Pulse,
+            0x06 => Wave,
+            0x07 => SingleCurve2,
+            0x08 => DoubleCurve2,
+            0x09 => HalfSine,
+            0x0A => Smooth,
+            0x0B => SingleCurve3,
+            0x0C => DoubleCurve3,
+            n => return Err(n),
+        })
+    }
+}
+
+/// Envelope arpeggiator mode. Graph points always have `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArpMode {
     None = 0x00,
     Prev = 0x01,
@@ -34,30 +57,48 @@ pub enum ArpMode {
     Next = 0x03,
 }
 
-// pub fn get_absolute_x<C>(curve: &C, idx: u32) -> f32
-// where
-//     C: CurveTrait,
-// {
-//     // not implemented
-//     0 as f32
-// }
-
-pub trait PointTrait {
-    fn absolute_x(&self) -> f32;
-    fn parent_curve(&self) -> Weak<dyn CurveTrait>;
+impl Default for ArpMode {
+    fn default() -> Self {
+        ArpMode::None
+    }
 }
-#[derive(Debug, PartialEq, Default, Clone)]
+
+impl TryFrom<u8> for ArpMode {
+    type Error = u8;
+    fn try_from(byte: u8) -> Result<Self, u8> {
+        Ok(match byte {
+            0x00 => ArpMode::None,
+            0x01 => ArpMode::Prev,
+            0x02 => ArpMode::Same,
+            0x03 => ArpMode::Next,
+            n => return Err(n),
+        })
+    }
+}
+
+/// A single 24-byte point record:
+///
+/// | offset | type | field      |
+/// |--------|------|------------|
+/// | 0x00   | f64  | x_offset   |
+/// | 0x08   | f64  | y          |
+/// | 0x10   | f32  | tension    |
+/// | 0x14   | u8   | mode       |
+/// | 0x15   | u8   | arp_mode   |
+/// | 0x16   | u8   | reserved   |
+/// | 0x17   | i8   | tension_sign |
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Point {
-    x_offset: f32, // offset value
-    y: f32,
-    tension: f32,
-    mode: PointMode,
-}
-
-pub struct EnvPoint {
-    x_offset: f32, // offset value
-    y: f32,
-    tension: f32,
-    mode: PointMode,
-    arp_mode: ArpMode,
+    /// x distance from the previous point (not an absolute coordinate)
+    pub x_offset: f64,
+    pub y: f64,
+    /// -1.0..=1.0 (FL shows it as -100%..100%)
+    pub tension: f32,
+    pub mode: PointMode,
+    pub arp_mode: ArpMode,
+    /// always 0 in files saved by FL
+    pub reserved: u8,
+    /// Not fully understood. 1 for positive tension, -1 for negative,
+    /// and 2 (usually) or 0 when tension is 0.
+    pub tension_sign: i8,
 }

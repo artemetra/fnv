@@ -1,199 +1,135 @@
-#![allow(dead_code)]
+use crate::point::Point;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
-use crate::point::{EnvPoint, Point};
+/// The only version seen in files saved by FL (u32 at offset 0x04).
+pub const FNV_VERSION: u32 = 3;
+pub const HEADER_LEN: usize = 12;
+pub const POINT_LEN: usize = 24;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CurveType {
     Envelope = 0x01,
     Lfo = 0x02,
     Graph = 0x03,
+    /// EQ (old name: Map)
     Map = 0x07,
 }
 
-#[derive(Default)]
-pub struct EnvFlags {
-    tempo: bool,
-    global: bool,
-}
-
-struct InvalidEnvFlagByte(u8);
-impl EnvFlags {
-    fn new(tempo: bool, global: bool) -> EnvFlags {
-        EnvFlags { tempo, global }
-    }
-    //                               should i just use Option<>?
-    fn from_byte(byte: u8) -> Result<EnvFlags, InvalidEnvFlagByte> {
-        match byte {
-            0 => Ok(EnvFlags {
-                tempo: false,
-                global: false,
-            }),
-            1 => Ok(EnvFlags {
-                tempo: true,
-                global: false,
-            }),
-            2 => Ok(EnvFlags {
-                tempo: false,
-                global: true,
-            }),
-            3 => Ok(EnvFlags {
-                tempo: true,
-                global: true,
-            }),
-            n => Err(InvalidEnvFlagByte(n)),
-        }
-    }
-    fn as_byte(&self) -> u8 {
-        ((self.global as u8) << 1) | (self.tempo as u8)
-    }
-}
-pub struct LfoFlags {
-    frozen: bool,
-    bipolar: bool,
-}
-
-struct InvalidLfoFlagByte(u8);
-
-impl LfoFlags {
-    fn new(frozen: bool, bipolar: bool) -> LfoFlags {
-        LfoFlags { frozen, bipolar }
-    }
-    fn from_byte(byte: u8) -> Result<LfoFlags, InvalidLfoFlagByte> {
-        match byte {
-            0x07 => Ok(LfoFlags {
-                frozen: false,
-                bipolar: false,
-            }),
-            0x0F => Ok(LfoFlags {
-                frozen: true,
-                bipolar: false,
-            }),
-            0x03 => Ok(LfoFlags {
-                frozen: false,
-                bipolar: true,
-            }),
-            0x0B => Ok(LfoFlags {
-                frozen: true,
-                bipolar: true,
-            }),
-            n => Err(InvalidLfoFlagByte(n)),
-        }
-    }
-    fn as_byte(&self) -> u8 {
-        match self {
-            LfoFlags {
-                frozen: false,
-                bipolar: false,
-            } => 0x07,
-            LfoFlags {
-                frozen: true,
-                bipolar: false,
-            } => 0x0F,
-            LfoFlags {
-                frozen: false,
-                bipolar: true,
-            } => 0x03,
-            LfoFlags {
-                frozen: true,
-                bipolar: true,
-            } => 0x0B,
+impl TryFrom<u32> for CurveType {
+    type Error = u32;
+    fn try_from(n: u32) -> Result<Self, u32> {
+        match n {
+            1 => Ok(CurveType::Envelope),
+            2 => Ok(CurveType::Lfo),
+            3 => Ok(CurveType::Graph),
+            7 => Ok(CurveType::Map),
+            n => Err(n),
         }
     }
 }
 
-pub struct EnvADSRIndices {
-    decay: Option<u32>,
-    loop_start: Option<u32>,
-    // in FL, it's written as "Sustain / Loop End" so i'm unsure which one to use
-    sustain: Option<u32>,
-}
-
-// i really should use traits
-pub struct LfoADSRIndices {
-    loop_start: Option<u32>,
-    sustain: Option<u32>,
-}
-
-pub trait ADSRIndices {
-    fn decay(&self) -> Option<u32>;
-    fn loop_start(&self) -> Option<u32>;
-    fn sustain(&self) -> Option<u32>;
-}
-
-pub trait CurveTrait {
-    fn points(&self) -> &Vec<Point>;
-    fn point_count(&self) -> u32;
-    fn minimum_point_count() -> u8
-    where
-        Self: Sized,
-    {
-        1
-    }
-    fn curve_type(&self) -> CurveType;
-    fn adsr_indices(&self) -> Option<Box<dyn ADSRIndices>>;
-    fn flags(&self) -> Option<EnvFlags>;
-}
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct GraphCurve {
-    points_: Vec<Point>,
-}
-
-impl CurveTrait for GraphCurve {
-    fn points(&self) -> &Vec<Point> {
-        &self.points_
-    }
-    fn point_count(&self) -> u32 {
-        self.points_.len() as u32
-    }
-    fn curve_type(&self) -> CurveType {
-        CurveType::Graph
-    }
-    fn adsr_indices(&self) -> Option<Box<dyn ADSRIndices>> {
-        None
-    }
-    fn flags(&self) -> Option<EnvFlags> {
-        None
-    }
-    fn minimum_point_count() -> u8
-    where
-        Self: Sized,
-    {
-        2
+impl CurveType {
+    /// Length of the whole footer (common part + type-specific part) in bytes.
+    pub fn footer_len(self) -> usize {
+        CommonFooter::LEN
+            + match self {
+                CurveType::Envelope => EnvParams::LEN,
+                CurveType::Lfo => LfoParams::LEN,
+                CurveType::Graph | CurveType::Map => 0,
+            }
     }
 }
 
-pub struct EQCurve {
-    points_: Vec<Point>,
+/// First 20 bytes of the footer, present in every curve type.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct CommonFooter {
+    /// Bitfield, see the accessor methods.
+    pub flags: u32,
+    /// Stored as a Delphi LongBool (-1 = on, 0 = off). Always on for graphs.
+    pub enabled: bool,
+    /// Point indices of the ADSR markers, `None` is stored as -1.
+    pub decay_point: Option<u32>,
+    pub loop_start_point: Option<u32>,
+    /// "Sustain / Loop end" in FL
+    pub sustain_point: Option<u32>,
 }
 
-pub struct EnvADSR {
-    attack: f32,
-    decay: f32,
-    sustain: f32,
-    release: f32,
+impl CommonFooter {
+    pub const LEN: usize = 20;
+
+    pub fn tempo(&self) -> bool {
+        self.flags & 0b0001 != 0
+    }
+    pub fn global(&self) -> bool {
+        self.flags & 0b0010 != 0
+    }
+    /// LFO only. The bit is set when the LFO is *uni*polar.
+    pub fn bipolar(&self) -> bool {
+        self.flags & 0b0100 == 0
+    }
+    /// LFO only.
+    pub fn frozen(&self) -> bool {
+        self.flags & 0b1000 != 0
+    }
 }
 
-pub struct EnvCurve {
-    points_: Vec<EnvPoint>,
-    on: bool,
-    flags_: EnvFlags,
-    adsr: EnvADSR,
-    adsr_indices: EnvADSRIndices,
+/// Extra 16 footer bytes of envelopes. Meaning not confirmed yet; they are
+/// almost always `[128, 128, 0, 128]` and are likely the ADSR knob values.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct EnvParams {
+    pub params: [u32; 4],
 }
 
-// TODO: fix naming
-pub struct LfoShape {
-    speed: f32,
-    tension: f32,
-    skew: f32,
-    pulsewidth: f32,
+impl EnvParams {
+    pub const LEN: usize = 16;
 }
 
-pub struct LfoCurve {
-    points_: Vec<EnvPoint>,
-    on: bool,
-    flags_: EnvFlags,
-    adsr_indices: LfoADSRIndices,
-    shape: LfoShape,
-    phase: f32,
+/// Extra 20 footer bytes of LFOs.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct LfoParams {
+    /// knob 0.0..=1.0 maps linearly to 512..=65536
+    pub speed: u32,
+    /// -128..=128
+    pub tension: i32,
+    /// assumed from knob order, never non-zero in the test corpus
+    pub skew: i32,
+    /// assumed from knob order, never non-zero in the test corpus
+    pub pulse_width: i32,
+    /// raw value, scale unknown
+    pub phase: u32,
+}
+
+impl LfoParams {
+    pub const LEN: usize = 20;
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum FooterParams {
+    None,
+    Envelope(EnvParams),
+    Lfo(LfoParams),
+}
+
+/// A parsed .fnv file.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Fnv {
+    pub curve_type: CurveType,
+    pub points: Vec<Point>,
+    pub footer: CommonFooter,
+    /// Must match `curve_type`: `Envelope` for envelopes, `Lfo` for LFOs, `None` otherwise.
+    pub params: FooterParams,
+}
+
+impl Fnv {
+    /// Absolute x coordinate of every point.
+    pub fn absolute_xs(&self) -> Vec<f64> {
+        self.points
+            .iter()
+            .scan(0.0, |x, p| {
+                *x += p.x_offset;
+                Some(*x)
+            })
+            .collect()
+    }
 }
