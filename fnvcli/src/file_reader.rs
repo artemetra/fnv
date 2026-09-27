@@ -563,6 +563,35 @@ mod tests {
         assert_eq!(old.params, new.params);
     }
 
+    #[test]
+    fn check() {
+        use crate::file_writer::FnvWriteError;
+        let mut f = read_fnv(&hex(GRAPH_3)).unwrap();
+        assert_eq!(f.check(), Ok(()));
+        f.params = FooterParams::Envelope(EnvParams::default());
+        assert_eq!(
+            f.check(),
+            Err(FnvWriteError::ParamsMismatch {
+                curve_type: CurveType::Graph
+            })
+        );
+        f.curve_type = CurveType::Envelope;
+        assert_eq!(f.check(), Ok(()));
+        f.footer.sustain_point = Some(u32::MAX);
+        assert_eq!(f.check(), Err(FnvWriteError::PointIndexTooLarge(u32::MAX)));
+    }
+
+    /// JSON (as printed by `fnvcli show`) must round-trip exactly, including -0.0.
+    #[test]
+    fn json_roundtrip() {
+        for h in [GRAPH_3, ENV_DEFAULT, LFO_DEFAULT, GRAPH_V0, LFO_V2, ENV_V1] {
+            let b = hex(h);
+            let json = serde_json::to_string_pretty(&read_fnv(&b).unwrap()).unwrap();
+            let back: Fnv = serde_json::from_str(&json).unwrap();
+            assert_eq!(back.to_bytes(), b);
+        }
+    }
+
     /// Converting between versions keeps the curve (for values f32 can hold).
     #[test]
     fn convert_versions() {

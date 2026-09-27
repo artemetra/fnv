@@ -1,6 +1,7 @@
 //! Runs the parser over a directory of real .fnv files.
 //! Skipped unless FNV_CORPUS is set, e.g.
 //! `FNV_CORPUS=/path/to/_FNV cargo test --test corpus -- --nocapture`
+use fnvcli::curve::Fnv;
 use fnvcli::file_reader::read_fnv;
 use std::path::{Path, PathBuf};
 
@@ -36,6 +37,10 @@ fn corpus() {
             Ok(fnv) => {
                 // every file that parses must serialize back to identical bytes
                 assert_eq!(fnv.to_bytes(), bytes, "round-trip mismatch: {:?}", path);
+                // and so must the JSON that `fnvcli show` prints and `fnvcli write` reads
+                let json = serde_json::to_string(&fnv).unwrap();
+                let back: Fnv = serde_json::from_str(&json).unwrap();
+                assert_eq!(back.to_bytes(), bytes, "JSON round-trip mismatch: {:?}", path);
                 parsed += 1;
             }
             Err(e) => eprintln!("unparsed {:?}: {}", path.strip_prefix(&dir).unwrap(), e),

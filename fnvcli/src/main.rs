@@ -1,7 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use fnvcli::curve::Fnv;
 use fnvcli::file_reader::read_fnv;
 use std::collections::BTreeMap;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
@@ -21,6 +23,16 @@ enum Command {
     Scan {
         dir: PathBuf,
     },
+    /// Write a .fnv file from JSON in the format `show` prints
+    Write {
+        /// JSON file, or - for stdin
+        input: PathBuf,
+        /// .fnv file to create, or - for stdout
+        output: PathBuf,
+        /// Overwrite the output file if it exists
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -28,11 +40,51 @@ fn main() -> Result<()> {
         Command::Show { path } => {
             let bytes = std::fs::read(&path).with_context(|| format!("reading {:?}", path))?;
             let fnv = read_fnv(&bytes).with_context(|| format!("parsing {:?}", path))?;
-            println!("{}", serde_json::to_string_pretty(&fnv)?);
+            let json = serde_json::to_string_pretty(&fnv)? + "\n";
+            write_stdout(json.as_bytes())?;
         }
         Command::Scan { dir } => scan(&dir)?,
+        Command::Write {
+            input,
+            output,
+            force,
+        } => write(&input, &output, force)?,
     }
     Ok(())
+}
+
+fn write(input: &Path, output: &Path, force: bool) -> Result<()> {
+    let json = if input == Path::new("-") {
+        let mut s = String::new();
+        std::io::stdin().read_to_string(&mut s).context("reading stdin")?;
+        s
+    } else {
+        std::fs::read_to_string(input).with_context(|| format!("reading {:?}", input))?
+    };
+    let fnv: Fnv = serde_json::from_str(&json).context("parsing JSON")?;
+    fnv.check()?;
+    let bytes = fnv.to_bytes();
+    // the writer and parser should always agree; don't write a file that doesn't
+    read_fnv(&bytes).context("the written file doesn't parse (bug in fnvcli)")?;
+
+    if output == Path::new("-") {
+        write_stdout(&bytes)?;
+    } else {
+        if output.exists() && !force {
+            bail!("{:?} already exists, use --force to overwrite it", output);
+        }
+        std::fs::write(output, &bytes).with_context(|| format!("writing {:?}", output))?;
+    }
+    Ok(())
+}
+
+/// Writes to stdout, stopping quietly if the reader went away (e.g. `| head`).
+fn write_stdout(bytes: &[u8]) -> Result<()> {
+    let mut out = std::io::stdout().lock();
+    match out.write_all(bytes).and_then(|_| out.flush()) {
+        Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => Ok(()),
+        r => Ok(r?),
+    }
 }
 
 fn fnv_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {

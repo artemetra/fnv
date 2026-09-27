@@ -1,12 +1,69 @@
 //! Serializes an `Fnv` back into the on-disk format (inverse of `file_reader`).
-use crate::curve::{CommonFooter, Fnv, FooterParams, Version, HEADER_LEN};
+use crate::curve::{CommonFooter, CurveType, Fnv, FooterParams, Version, HEADER_LEN};
 use crate::point::Point;
+use std::{error::Error, fmt};
+
+/// An `Fnv` that can't be written as a valid file.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FnvWriteError {
+    /// Envelopes need `FooterParams::Envelope`, LFOs `FooterParams::Lfo`,
+    /// graphs and EQs `FooterParams::None`.
+    ParamsMismatch { curve_type: CurveType },
+    /// Point indices are stored as i32
+    PointIndexTooLarge(u32),
+}
+
+impl fmt::Display for FnvWriteError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FnvWriteError::ParamsMismatch { curve_type } => {
+                let expected = match curve_type {
+                    CurveType::Envelope => "Envelope",
+                    CurveType::Lfo => "Lfo",
+                    CurveType::Graph | CurveType::Map => "None",
+                };
+                write!(f, "{:?} curves need params {}", curve_type, expected)
+            }
+            FnvWriteError::PointIndexTooLarge(i) => {
+                write!(f, "point index {} doesn't fit in an i32", i)
+            }
+        }
+    }
+}
+
+impl Error for FnvWriteError {}
 
 impl Fnv {
+    /// Checks that `to_bytes` will produce a file that can be read back.
+    pub fn check(&self) -> Result<(), FnvWriteError> {
+        let params_ok = matches!(
+            (self.curve_type, &self.params),
+            (CurveType::Envelope, FooterParams::Envelope(_))
+                | (CurveType::Lfo, FooterParams::Lfo(_))
+                | (CurveType::Graph | CurveType::Map, FooterParams::None)
+        );
+        if !params_ok {
+            return Err(FnvWriteError::ParamsMismatch {
+                curve_type: self.curve_type,
+            });
+        }
+        let f = &self.footer;
+        for i in [f.decay_point, f.loop_start_point, f.sustain_point]
+            .into_iter()
+            .flatten()
+        {
+            if i > i32::MAX as u32 {
+                return Err(FnvWriteError::PointIndexTooLarge(i));
+            }
+        }
+        Ok(())
+    }
+
     /// Writes the file in `self.version`. Older versions store less, so
     /// writing them drops data: version 0 has no mode / arp mode / flags per
     /// point, versions 0 and 1 round coordinates to f32, and versions 0-2
     /// have no LFO phase. Files read from disk always write back identically.
+    /// Call `check` first for an `Fnv` that didn't come from `read_fnv`.
     pub fn to_bytes(&self) -> Vec<u8> {
         let v = self.version;
         let mut out = Vec::with_capacity(
